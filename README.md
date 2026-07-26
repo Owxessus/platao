@@ -69,7 +69,7 @@ That regex layer is deliberately shallow. For **deep** multi-language analysis t
 pip install 'platao[deep]'   # adds real ASTs for JS, TS, Go, Ruby, Java, Rust, PHP, C#, …
 ```
 
-With it installed, deep structural checks run on those languages too — starting with `not_stub` (an action-named function with a genuinely empty body, told apart from an honest abstract declaration). The core stays zero-dependency without the extra; the polyglot regex layer still covers those files. More deep checks land as tree-sitter queries beside `not_stub`. Today: deep in Python (always) and in the deep-layer languages (with the extra), broad everywhere.
+With it installed, deep structural checks run on those languages too — `not_stub` (an action-named function with a genuinely empty body, told apart from an honest abstract declaration) and `empty_test` (a JS/TS `it(...)`/`test(...)` whose body asserts nothing — the fake-test smell). The core stays zero-dependency without the extra; the polyglot regex layer still covers those files. More deep checks land as tree-sitter queries beside these. Today: deep in Python (always) and in the deep-layer languages (with the extra), broad everywhere.
 
 ## The questions
 

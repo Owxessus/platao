@@ -69,7 +69,7 @@ Essa camada de regex é de propósito rasa. Para análise **profunda** multi-lin
 pip install 'platao[deep]'   # ASTs reais para JS, TS, Go, Ruby, Java, Rust, PHP, C#, …
 ```
 
-Com ela instalada, checks estruturais profundos rodam nessas linguagens também — a começar por `not_stub` (função de nome-de-ação com corpo genuinamente vazio, distinguida de uma declaração abstrata honesta). O core continua zero-dependência sem o extra; a camada poliglota de regex ainda cobre esses ficheiros. Mais checks profundos entram como queries tree-sitter ao lado do `not_stub`. Hoje: profundo em Python (sempre) e nas linguagens da camada deep (com o extra), amplo em toda parte.
+Com ela instalada, checks estruturais profundos rodam nessas linguagens também — `not_stub` (função de nome-de-ação com corpo genuinamente vazio, distinguida de uma declaração abstrata honesta) e `empty_test` (um `it(...)`/`test(...)` JS/TS cujo corpo não afirma nada — o cheiro do teste-fantasma). O core continua zero-dependência sem o extra; a camada poliglota de regex ainda cobre esses ficheiros. Mais checks profundos entram como queries tree-sitter ao lado destes. Hoje: profundo em Python (sempre) e nas linguagens da camada deep (com o extra), amplo em toda parte.
 
 ## As perguntas
 

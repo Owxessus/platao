@@ -51,6 +51,10 @@ _FUNC_TYPES: dict[str, set[str]] = {
 # missing body means a declaration/abstract method — honest, not a stub — so we don't flag it.
 _NONE_BODY_MEANS_EMPTY = {"ruby"}
 
+# `empty_test` runs where `it(...)`/`test(...)` + `expect`/`assert` are the near-universal idiom.
+_TEST_LANGS = {"javascript", "typescript", "tsx"}
+_ASSERTION_RE = re.compile(r"expect|assert|should", re.IGNORECASE)
+
 
 def available() -> bool:
     """Is the optional ``tree-sitter-language-pack`` dependency installed?"""
@@ -99,5 +103,54 @@ def scan(path: str, source: str) -> list[Finding]:
                     f"'{name}' has an empty body — the announced action does nothing",
                 ))
         stack.extend(node.children)
+
+    out.extend(_scan_empty_tests(tree.root_node, lang, path))
     out.sort(key=lambda f: f.sort_key)
     return out
+
+
+def _scan_empty_tests(root, lang: str, path: str) -> list[Finding]:
+    """A test that asserts nothing — ``it(...)`` / ``test(...)`` whose callback has no expect/assert."""
+    if lang not in _TEST_LANGS:
+        return []
+    out: list[Finding] = []
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        if node.type == "call_expression":
+            callee = node.child_by_field_name("function")
+            if callee is not None and callee.type == "identifier":
+                name = (callee.text or b"").decode("utf-8", "ignore")
+                if name in ("it", "test"):
+                    callback = _callback_arg(node)
+                    if callback is not None and not _has_assertion(callback):
+                        out.append(Finding(
+                            "empty_test", "placebo", Severity.MEDIUM, path, node.start_point[0] + 1,
+                            "test has no assertion (no expect/assert) — it proves nothing",
+                        ))
+        stack.extend(node.children)
+    return out
+
+
+def _callback_arg(call_node):
+    """The function passed to ``it``/``test`` (the test body), or ``None``."""
+    args = call_node.child_by_field_name("arguments")
+    if args is None:
+        return None
+    for child in args.children:
+        if child.type in ("arrow_function", "function_expression", "function"):
+            return child
+    return None
+
+
+def _has_assertion(fn_node) -> bool:
+    """Does the test body call anything that looks like an assertion (expect/assert/should)?"""
+    stack = [fn_node]
+    while stack:
+        node = stack.pop()
+        if node.type == "call_expression":
+            callee = node.child_by_field_name("function")
+            if callee is not None and _ASSERTION_RE.search((callee.text or b"").decode("utf-8", "ignore")):
+                return True
+        stack.extend(node.children)
+    return False

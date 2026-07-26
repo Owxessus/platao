@@ -60,3 +60,30 @@ def test_non_empty_ruby_is_silent():
 
 def test_unsupported_extension_returns_empty():
     assert scan("notes.txt", "function save() {}") == []
+
+
+# ── empty_test (JS/TS: it/test with no assertion) ─────────────────────────────────
+
+def test_empty_test_no_assertion_is_caught():
+    src = 'it("does a thing", () => {\n  const r = run();\n});'
+    assert "empty_test" in ids(src, "x.test.ts")
+
+
+def test_empty_test_empty_body_is_caught():
+    assert "empty_test" in ids('test("todo", () => {});', "x.test.ts")
+
+
+def test_test_with_expect_is_silent():  # negative control
+    src = 'it("works", () => {\n  expect(run()).toBe(1);\n});'
+    assert "empty_test" not in ids(src, "x.test.ts")
+
+
+def test_test_with_assert_is_silent():
+    src = 'test("works", () => {\n  assert.equal(run(), 1);\n});'
+    assert "empty_test" not in ids(src, "x.test.ts")
+
+
+def test_skipped_test_is_not_flagged():
+    # it.skip / test.only are member calls, not `it(...)` — deliberately excluded.
+    src = 'it.skip("later", () => {\n  const r = run();\n});'
+    assert "empty_test" not in ids(src, "x.test.ts")
