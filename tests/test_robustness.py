@@ -121,3 +121,38 @@ def test_mutable_default__none_default_is_silent():  # the correct idiom
 def test_mutable_default__immutable_default_is_silent():
     src = "def f(x, n=0):\n    return x + n\n"
     assert "mutable_default" not in ids(src)
+
+
+# ── hardcoded_secret (Python AST; value NEVER emitted) ─────────────────────────────
+
+def _findings(source, path="module.py"):
+    return analyze_source(path, source)
+
+
+def test_hardcoded_secret__literal_is_caught():
+    assert "hardcoded_secret" in ids('API_KEY = "sk-live-abcdef123456"\n')
+
+
+def test_hardcoded_secret__value_is_never_emitted():  # segredo nunca em output
+    fs = [f for f in _findings('password = "hunter2-supersecret"\n') if f.check_id == "hardcoded_secret"]
+    assert fs
+    blob = (fs[0].message + " " + fs[0].snippet).lower()
+    assert "hunter2" not in blob and "supersecret" not in blob
+    assert "<redacted>" in fs[0].snippet
+
+
+def test_hardcoded_secret__env_lookup_is_silent():  # the correct idiom
+    assert "hardcoded_secret" not in ids('import os\nAPI_KEY = os.environ["API_KEY"]\n')
+
+
+def test_hardcoded_secret__placeholder_is_medium_not_high():
+    fs = [f for f in _findings('api_key = "your-api-key-here"\n') if f.check_id == "hardcoded_secret"]
+    assert fs and fs[0].severity is Severity.MEDIUM
+
+
+def test_hardcoded_secret__non_secret_name_is_silent():
+    assert "hardcoded_secret" not in ids('greeting = "hello there friend"\n')
+
+
+def test_hardcoded_secret__short_value_is_silent():
+    assert "hardcoded_secret" not in ids('token = "abc"\n')

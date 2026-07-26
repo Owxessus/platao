@@ -91,3 +91,25 @@ def test_empty_catch_in_block_comment_is_silent():
 
 def test_debugger_in_string_is_silent():
     assert "debug_leftover" not in ids("const help = 'type debugger to break'\n")
+
+
+# ── hardcoded_secret (polyglot; value NEVER emitted) ──────────────────────────────
+
+def test_secret_js_assignment_is_caught():
+    assert "hardcoded_secret" in ids('const apiKey = "sk-live-abcdef123456";\n')
+
+
+def test_secret_value_is_never_emitted():
+    fs = [f for f in scan("a.ts", 'const token = "ghp_supersecretvalue123";\n') if f.check_id == "hardcoded_secret"]
+    assert fs
+    assert "ghp_supersecretvalue123" not in (fs[0].message + " " + fs[0].snippet)
+
+
+def test_secret_placeholder_is_medium():
+    from platao.finding import Severity as S
+    fs = [f for f in scan("a.ts", 'const apiKey = "your-token-example";\n') if f.check_id == "hardcoded_secret"]
+    assert fs and fs[0].severity is S.MEDIUM
+
+
+def test_secret_env_lookup_is_silent():
+    assert "hardcoded_secret" not in ids('const apiKey = process.env.API_KEY;\n')

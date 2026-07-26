@@ -14,7 +14,8 @@ from collections.abc import Iterable
 from platao.checks import register
 from platao.checks._ast import catches_interrupts, except_name, is_broad_except, is_ellipsis
 from platao.context import FileContext
-from platao.finding import Severity
+from platao.finding import Finding, Severity
+from platao.patterns import MIN_SECRET_LEN, PLACEHOLDER, SECRET_NAME
 
 
 @register("swallowed_error", "robustness", Severity.MEDIUM)
@@ -138,6 +139,41 @@ def _param_is_mutated(name: str, fn: ast.FunctionDef | ast.AsyncFunctionDef) -> 
                         and target.value.id == name:
                     return True
     return False
+
+
+@register("hardcoded_secret", "security", Severity.HIGH)
+def hardcoded_secret(ctx: FileContext) -> Iterable[Finding]:
+    """A secret-named variable assigned a string literal — a key/token/password baked into source.
+
+    Flags ``API_KEY = "…"`` / ``token: str = "…"`` where the name reads as a credential and the value
+    is a real-length string. The correct pattern — ``API_KEY = os.environ["API_KEY"]`` — has a
+    non-literal value and is never matched. The secret's value is **never** put in the message or the
+    snippet (the snippet is redacted to the name). A placeholder value (``test``/``example``/``<...>``)
+    downgrades to MEDIUM — likely a fixture — rather than being silenced.
+    """
+    for node in ast.walk(ctx.tree):
+        if isinstance(node, ast.Assign):
+            names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+            value = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            names, value = [node.target.id], node.value
+        else:
+            continue
+        if not (isinstance(value, ast.Constant) and isinstance(value.value, str)):
+            continue
+        if len(value.value) < MIN_SECRET_LEN:
+            continue
+        for name in names:
+            if not SECRET_NAME.search(name):
+                continue
+            placeholder = bool(PLACEHOLDER.search(value.value))
+            severity = Severity.MEDIUM if placeholder else Severity.HIGH
+            hint = " (looks like a placeholder/fixture)" if placeholder else ""
+            yield Finding(
+                "hardcoded_secret", "security", severity, ctx.path, node.lineno,
+                f"'{name}' is assigned a hardcoded secret{hint} — move it to config/env, never in source",
+                f"{name} = <redacted>",
+            )
 
 
 @register("mutable_default", "robustness", Severity.MEDIUM)

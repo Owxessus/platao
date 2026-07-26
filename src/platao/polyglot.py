@@ -17,6 +17,7 @@ import re
 from dataclasses import dataclass
 
 from platao.finding import Finding, Severity
+from platao.patterns import PLACEHOLDER, SECRET_ASSIGN
 
 # Non-Python code files this layer scans. Python goes through the deep AST checks, never here.
 POLYGLOT_EXTS = frozenset({
@@ -46,6 +47,8 @@ POLYGLOT_CHECKS: list[PolyglotCheck] = [
                   "empty catch block swallows the error silently — no log, no re-raise"),
     PolyglotCheck("dangerous_dynamic", "security", Severity.HIGH,
                   "dynamic code execution (`eval` / `new Function`)"),
+    PolyglotCheck("hardcoded_secret", "security", Severity.HIGH,
+                  "a secret (key/token/password) hardcoded in source"),
     PolyglotCheck("debug_leftover", "hygiene", Severity.LOW, "a debugger was left in the code"),
     PolyglotCheck("debt_tracked", "hygiene", Severity.LOW,
                   "untracked TODO/FIXME — add an owner or issue ref"),
@@ -110,13 +113,15 @@ def _mask_noise(src: str) -> str:
 
 
 def _finding(check: PolyglotCheck, path: str, source: str, offset: int,
-             message: str | None = None) -> Finding:
+             message: str | None = None, severity: Severity | None = None,
+             snippet: str | None = None) -> Finding:
     line = source.count("\n", 0, offset) + 1
-    start = source.rfind("\n", 0, offset) + 1
-    end = source.find("\n", offset)
-    end = len(source) if end < 0 else end
-    snippet = source[start:end].strip()[:160]
-    return Finding(check.check_id, check.category, check.severity, path, line,
+    if snippet is None:
+        start = source.rfind("\n", 0, offset) + 1
+        end = source.find("\n", offset)
+        end = len(source) if end < 0 else end
+        snippet = source[start:end].strip()[:160]
+    return Finding(check.check_id, check.category, severity or check.severity, path, line,
                    message or check.message, snippet)
 
 
@@ -136,6 +141,21 @@ def scan(path: str, source: str) -> list[Finding]:
 
     for m in _DYNAMIC.finditer(code):
         out.append(_finding(_BY_ID["dangerous_dynamic"], path, source, m.start()))
+
+    # Secrets run on RAW source (the value lives inside a string literal), and the value is NEVER put
+    # in the finding — the snippet is redacted to the name only. A placeholder value (test/example/…)
+    # downgrades to MEDIUM (likely a fixture) rather than being silenced.
+    secret = _BY_ID["hardcoded_secret"]
+    for m in SECRET_ASSIGN.finditer(source):
+        name, value = m.group(1), m.group(3)
+        placeholder = bool(PLACEHOLDER.search(value))
+        sev = Severity.MEDIUM if placeholder else Severity.HIGH
+        hint = " (looks like a placeholder/fixture)" if placeholder else ""
+        out.append(_finding(
+            secret, path, source, m.start(), severity=sev,
+            message=f"'{name}' is assigned a hardcoded secret{hint} — move it to config/env, never in source",
+            snippet=f"{name} = <redacted>",
+        ))
 
     debugger = _BY_ID["debug_leftover"]
     for m in _DEBUGGER.finditer(code):
