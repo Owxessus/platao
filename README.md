@@ -59,6 +59,12 @@ The floor is what makes Platão trustworthy. The ceiling is what makes it *smart
 
 ---
 
+## Languages
+
+Platão's **deep** checks — the placebo/completeness analysis and the import graph — read Python's AST, so they run on `.py`. On **any other language** (JS, TS, Go, Ruby, PHP, Java, …) it runs a **universal layer**: the checks that hold everywhere, matched robustly without a parser — an empty `catch` that swallows an error, dynamic `eval`, a debugger left in the code, an untracked `TODO`. So `platao check app.ts` is real, not a no-op.
+
+That layer is deliberately shallow (a pattern is not an AST — it catches the universal smells, not the deep ones). **Full per-language deep analysis via tree-sitter is planned** — it's the biggest thing on the roadmap. Today: deep in Python, broad everywhere.
+
 ## The questions
 
 Every question is either `CODE` (deterministic, free) or `JUDGMENT` (needs an LLM). **All of them are opt-in** — enable the packs you want, disable the ones you don't, add your own. Defaults are the high-signal, low-false-positive set.

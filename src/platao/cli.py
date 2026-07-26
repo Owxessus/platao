@@ -89,11 +89,15 @@ def _run_mcp() -> int:
 
 
 def _list_checks() -> int:
+    from platao.polyglot import POLYGLOT_CHECKS
+
     for chk in sorted(REGISTRY.values(), key=lambda c: (c.category, c.id)):
-        scope = "  (test-only)" if chk.test_only else ""
+        scope = "  (test-only)" if chk.test_only else "  (Python, AST)"
         print(f"{chk.severity.value:<6} {chk.category:<12} {chk.id}{scope}")
     for chk in sorted(PROJECT_REGISTRY.values(), key=lambda c: (c.category, c.id)):
-        print(f"{chk.severity.value:<6} {chk.category:<12} {chk.id}  (project-wide)")
+        print(f"{chk.severity.value:<6} {chk.category:<12} {chk.id}  (Python, project-wide)")
+    for chk in sorted(POLYGLOT_CHECKS, key=lambda c: (c.category, c.check_id)):
+        print(f"{chk.severity.value:<6} {chk.category:<12} {chk.check_id}  (any language)")
     return 0
 
 

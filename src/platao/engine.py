@@ -13,6 +13,8 @@ from pathlib import Path
 from platao.checks import PROJECT_REGISTRY, REGISTRY
 from platao.context import FileContext
 from platao.finding import RANK, Finding, Severity
+from platao.polyglot import POLYGLOT_EXTS
+from platao.polyglot import scan as polyglot_scan
 from platao.project import build_index
 
 _SKIP_DIRS = frozenset({
@@ -57,18 +59,23 @@ def analyze_file(path: Path | str, *, display: str | None = None,
     return analyze_source(display or str(path), text, enabled=enabled)
 
 
-def iter_python_files(root: Path | str):
-    """Yield ``.py`` files under ``root`` (or ``root`` itself if it is one), skipping vendored dirs."""
+def iter_ext_files(root: Path | str, exts: frozenset[str]):
+    """Yield files under ``root`` (or ``root`` itself) whose suffix is in ``exts``, skipping vendored dirs."""
     root = Path(root)
     if root.is_file():
-        if root.suffix == ".py":
+        if root.suffix in exts:
             yield root
         return
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
         for name in filenames:
-            if name.endswith(".py"):
+            if Path(name).suffix in exts:
                 yield Path(dirpath) / name
+
+
+def iter_python_files(root: Path | str):
+    """Yield ``.py`` files under ``root`` (or ``root`` itself if it is one), skipping vendored dirs."""
+    yield from iter_ext_files(root, frozenset({".py"}))
 
 
 def _display_path(path: Path, root: Path | None) -> str:
@@ -116,6 +123,20 @@ def analyze_paths(paths, *, root: Path | str | None = None,
             if enabled is not None and pcheck.id not in enabled:
                 continue
             out.extend(pcheck.fn(index))
+
+    # Language-agnostic breadth: run the universal patterns over non-Python source.
+    for p in paths:
+        for f in iter_ext_files(Path(p), POLYGLOT_EXTS):
+            real = str(f.resolve())
+            if real in seen:
+                continue
+            seen.add(real)
+            display = _display_path(f, root_path)
+            source = Path(f).read_text(encoding="utf-8", errors="ignore")
+            findings = polyglot_scan(display, source)
+            if enabled is not None:
+                findings = [fd for fd in findings if fd.check_id in enabled]
+            out.extend(findings)
 
     out.sort(key=lambda f: f.sort_key)
     return out

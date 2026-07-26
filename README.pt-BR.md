@@ -59,6 +59,12 @@ O chão é o que torna o Platão confiável. O teto é o que o torna *esperto* s
 
 ---
 
+## Linguagens
+
+Os checks **profundos** do Platão — a análise de placebo/completude e o grafo de imports — leem a AST de Python, então rodam em `.py`. Em **qualquer outra linguagem** (JS, TS, Go, Ruby, PHP, Java, …) ele roda uma **camada universal**: os checks que valem em todo lado, casados de forma robusta sem parser — um `catch` vazio que engole o erro, `eval` dinâmico, um debugger esquecido no código, um `TODO` sem rastreio. Então `platao check app.ts` é real, não um no-op.
+
+Essa camada é de propósito rasa (um padrão não é uma AST — pega os cheiros universais, não os profundos). **Análise profunda por-linguagem via tree-sitter está planeada** — é a maior coisa do roadmap. Hoje: profundo em Python, amplo em toda parte.
+
 ## As perguntas
 
 Toda pergunta é `CODE` (determinística, grátis) ou `JUDGMENT` (precisa de LLM). **Todas são opt-in** — ligue os packs que quer, desligue os que não quer, adicione os seus. Os defaults são o conjunto de alto sinal e baixo falso-positivo.
