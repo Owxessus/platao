@@ -110,7 +110,8 @@ def analyze_paths(paths, *, root: Path | str | None = None,
             out.extend(analyze_source(display, source, enabled=enabled))
 
     if triples:
-        index = build_index(triples, root_path or Path.cwd())
+        scanned_tree = any(Path(p).is_dir() for p in paths)
+        index = build_index(triples, root_path or Path.cwd(), whole_project=scanned_tree)
         for pcheck in PROJECT_REGISTRY.values():
             if enabled is not None and pcheck.id not in enabled:
                 continue

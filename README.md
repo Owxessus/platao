@@ -175,6 +175,23 @@ Notes for total honesty:
 
 ## Configuration
 
+### Judgment (opt-in, BYO-LLM)
+
+The skeptical-senior layer is off until you ask for it and point it at a model. It's BYO-LLM — any OpenAI-compatible endpoint (OpenAI, OpenRouter, DeepSeek, a local Ollama):
+
+```bash
+export PLATAO_JUDGE_MODEL=gpt-4o-mini          # your model
+export PLATAO_JUDGE_API_KEY=sk-...             # your key — Platão reads it from the env, never stores it
+export PLATAO_JUDGE_BASE_URL=https://api.openai.com/v1   # optional; defaults to OpenAI
+platao check src/service.py --judge
+```
+
+Judgment is **advisory**: its findings are shown but **do not drive the exit code** — the deterministic checks are the gate (you don't fail CI on an LLM's opinion). And if the model can't be reached, Platão says so with a `judge_unverified` finding — it never silently reports "all good".
+
+### Config file
+
+A `.platao.yml` for enabling/disabling questions and packs is **planned**; today, use the flags above and `list-checks`. The shape it will take:
+
 Everything is opt-in via `.platao.yml` at your repo root. No file = sensible defaults (the high-signal deterministic set, judgment off).
 
 ```yaml

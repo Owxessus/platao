@@ -27,7 +27,12 @@ def unwired(index: ProjectIndex) -> Iterable[Finding]:
     and anything with an ``if __name__ == "__main__"`` guard or living under ``scripts``/``bin`` are
     entry points, not islands. A module re-exported by its package's ``__init__`` counts as imported
     (that shows up as an import target in the index), so public API isn't misread as dead.
+
+    Only runs over a scanned tree — auditing a single named file can't see who imports it, so we don't
+    guess "dead" there.
     """
+    if not index.whole_project:
+        return
     for m in index.modules.values():
         if m.is_test or m.is_pkg_init or m.is_entrypoint:
             continue

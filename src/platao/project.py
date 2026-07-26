@@ -89,6 +89,9 @@ class ProjectIndex:
     root: Path
     modules: dict[str, ModuleInfo]
     imported_targets: set[str]
+    # True when a directory/tree was scanned. `unwired` needs this — over a single named file the
+    # importer set is unknowable, so "nobody imports it" would be a false positive.
+    whole_project: bool = True
 
     def finding(self, m: ModuleInfo, check_id: str, category: str, severity: Severity,
                 line: int, message: str) -> Finding:
@@ -158,7 +161,8 @@ def _is_script_path(display: str) -> bool:
     return parts[-1] == "__main__.py" or any(p in _SCRIPT_DIRS for p in parts[:-1])
 
 
-def build_index(items: list[tuple[Path, str, str]], root: Path) -> ProjectIndex:
+def build_index(items: list[tuple[Path, str, str]], root: Path, *,
+                whole_project: bool = True) -> ProjectIndex:
     """Build the index from ``(path, display, source)`` triples. Unparseable files are skipped."""
     modules: dict[str, ModuleInfo] = {}
     imported: set[str] = set()
@@ -170,4 +174,4 @@ def build_index(items: list[tuple[Path, str, str]], root: Path) -> ProjectIndex:
         info = _index_one(path, display, tree, source)
         modules[info.module] = info
         imported |= info.imports
-    return ProjectIndex(root=root, modules=modules, imported_targets=imported)
+    return ProjectIndex(root=root, modules=modules, imported_targets=imported, whole_project=whole_project)

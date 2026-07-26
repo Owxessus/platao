@@ -175,6 +175,23 @@ Notas de total honestidade:
 
 ## Configuração
 
+### Juízo (opt-in, BYO-LLM)
+
+A camada do sênior cético fica desligada até você pedir e apontar um modelo. É BYO-LLM — qualquer endpoint compatível com OpenAI (OpenAI, OpenRouter, DeepSeek, um Ollama local):
+
+```bash
+export PLATAO_JUDGE_MODEL=gpt-4o-mini          # seu modelo
+export PLATAO_JUDGE_API_KEY=sk-...             # sua chave — o Platão lê do env, nunca armazena
+export PLATAO_JUDGE_BASE_URL=https://api.openai.com/v1   # opcional; default é OpenAI
+platao check src/service.py --judge
+```
+
+O juízo é **consultivo**: os achados aparecem mas **não mexem no exit code** — os checks determinísticos é que são o portão (você não reprova o CI por opinião de LLM). E se o modelo não puder ser alcançado, o Platão diz isso com um achado `judge_unverified` — nunca reporta "tudo certo" em silêncio.
+
+### Ficheiro de config
+
+Um `.platao.yml` para ligar/desligar perguntas e packs está **planeado**; hoje, use os flags acima e `list-checks`. A forma que ele terá:
+
 Tudo é opt-in via `.platao.yml` na raiz do repo. Sem ficheiro = defaults sensatos (o conjunto determinístico de alto sinal, juízo desligado).
 
 ```yaml
