@@ -1,5 +1,7 @@
 # Platão
 
+<img src="assets/athena-coin.jpg" align="right" width="108" alt="Athena — o OS soberano de onde o Platão foi extraído">
+
 **[English](README.md) · Português**
 
 **Sua IA disse "pronto". O Platão faz as perguntas chatas que um sênior cético faria — antes de você confiar.**

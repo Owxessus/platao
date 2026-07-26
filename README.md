@@ -1,5 +1,7 @@
 # Platão
 
+<img src="assets/athena-coin.jpg" align="right" width="108" alt="Athena — the sovereign OS Platão was extracted from">
+
 **English · [Português](README.pt-BR.md)**
 
 **Your AI said "done." Platão asks the boring questions a skeptical senior would — before you trust it.**
