@@ -11,11 +11,41 @@ from __future__ import annotations
 import ast
 from collections.abc import Iterable
 
+import re
+
 from platao.checks import register
-from platao.checks._ast import catches_interrupts, except_name, is_broad_except, is_ellipsis
+from platao.checks._ast import (
+    catches_interrupts,
+    except_name,
+    is_broad_except,
+    is_ellipsis,
+    is_success_literal,
+)
 from platao.context import FileContext
 from platao.finding import Finding, Severity
 from platao.patterns import MIN_SECRET_LEN, PLACEHOLDER, SECRET_NAME
+
+# A function whose name says it makes a security / validation / access decision. Only these are held
+# to "fail closed" — the name is the proxy for "this is a gate", which keeps `fail_closed` from firing
+# on ordinary functions that happen to return True in an except. Matched by TOKEN (snake_case /
+# camelCase split), so `is_authorized` and `checkPermission` match while `get_author` / `checkout` —
+# which merely share a prefix — do not.
+_GUARD_TOKENS = frozenset({
+    "auth", "authorize", "authorized", "authenticate", "authenticated", "authorization",
+    "valid", "validate", "allow", "allowed", "permit", "permitted", "permission",
+    "access", "grant", "granted", "eligible", "verify", "verified", "guard", "login", "credential",
+})
+_GUARD_PREFIXES = ("authoriz", "authenticat", "valid", "permit", "permiss", "allow",
+                   "access", "grant", "eligib", "verif", "guard", "credential")
+
+
+def _is_guard_name(name: str) -> bool:
+    """Does the function name read as an access/validation decision (token-wise)?"""
+    for token in re.findall(r"[A-Za-z][a-z]*", name):
+        low = token.lower()
+        if low in _GUARD_TOKENS or any(low.startswith(p) for p in _GUARD_PREFIXES):
+            return True
+    return False
 
 
 @register("swallowed_error", "robustness", Severity.MEDIUM)
@@ -139,6 +169,40 @@ def _param_is_mutated(name: str, fn: ast.FunctionDef | ast.AsyncFunctionDef) -> 
                         and target.value.id == name:
                     return True
     return False
+
+
+@register("fail_closed", "security", Severity.HIGH)
+def fail_closed(ctx: FileContext) -> Iterable[tuple[int, str]]:
+    """A guard/auth/validation function that fails OPEN — a broad ``except`` returns a permissive value.
+
+    The dangerous shape: ``def is_authorized(...): try: ...  except Exception: return True``. When the
+    real check errors, the function grants access instead of denying it — a security decision that
+    defaults to "yes" on failure. A gate must fail *closed* (deny/raise on error), never open.
+
+    Held only to functions whose name says they make an access/validation decision (``is_authorized``,
+    ``validate_token``, ``check_permission``) — an ordinary function returning ``True`` in an ``except``
+    is not a gate. And only when the caught type is broad and the handler returns a success/permissive
+    literal (``True`` / ``"allow"`` / ``{"status": "ok"}``); a narrow catch or a ``return False`` /
+    ``raise`` is failing closed, and stays silent.
+    """
+    for fn in ast.walk(ctx.tree):
+        if not isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
+            continue
+        if not _is_guard_name(fn.name):
+            continue
+        for handler in ast.walk(fn):
+            if not isinstance(handler, ast.ExceptHandler) or not is_broad_except(handler):
+                continue
+            for stmt in ast.walk(handler):
+                if isinstance(stmt, ast.Return) and stmt.value is not None \
+                        and is_success_literal(stmt.value):
+                    yield (
+                        handler.lineno,
+                        f"guard '{fn.name}' fails OPEN — a broad {except_name(handler)} returns a "
+                        f"success/permissive value, so an error is treated as a pass instead of a "
+                        f"failure (a gate must deny or raise on error)",
+                    )
+                    break
 
 
 @register("hardcoded_secret", "security", Severity.HIGH)

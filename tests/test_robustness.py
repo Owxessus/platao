@@ -156,3 +156,41 @@ def test_hardcoded_secret__non_secret_name_is_silent():
 
 def test_hardcoded_secret__short_value_is_silent():
     assert "hardcoded_secret" not in ids('token = "abc"\n')
+
+
+# ── fail_closed (guard that fails OPEN on error) ───────────────────────────────────
+
+def test_fail_closed__guard_returns_true_on_except_is_caught():
+    src = ("def is_authorized(user):\n    try:\n        return check(user)\n"
+           "    except Exception:\n        return True\n")
+    assert "fail_closed" in ids(src)
+
+
+def test_fail_closed__validate_returning_ok_on_except_is_caught():
+    src = ('def validate_token(t):\n    try:\n        return verify(t)\n'
+           '    except Exception:\n        return "allow"\n')
+    assert "fail_closed" in ids(src)
+
+
+def test_fail_closed__guard_returns_false_is_silent():  # fails closed = correct
+    src = ("def is_authorized(user):\n    try:\n        return check(user)\n"
+           "    except Exception:\n        return False\n")
+    assert "fail_closed" not in ids(src)
+
+
+def test_fail_closed__guard_reraises_is_silent():
+    src = ("def is_authorized(user):\n    try:\n        return check(user)\n"
+           "    except Exception:\n        raise\n")
+    assert "fail_closed" not in ids(src)
+
+
+def test_fail_closed__non_guard_name_is_silent():  # not a gate — the name proxy
+    src = ("def load_cache(user):\n    try:\n        return fetch(user)\n"
+           "    except Exception:\n        return True\n")
+    assert "fail_closed" not in ids(src)
+
+
+def test_fail_closed__narrow_except_is_silent():
+    src = ("def is_authorized(user):\n    try:\n        return check(user)\n"
+           "    except KeyError:\n        return True\n")
+    assert "fail_closed" not in ids(src)
