@@ -24,11 +24,14 @@ platao sweep .                 # scan the whole repo for placebo tests & dead co
 
 ```
 Platão — src/service.py
-  ⚠ CRITICAL [wired]        nobody imports 'service' — island code (wire it, or it's dead)
-  ⚠ CRITICAL [has_effect]   'process()' is tested but the test never asserts on it — proves import, not effect
-  · [debt_tracked]          2 TODOs without a trackable ID
-  ✓ 9 checks passed
+  ⚠ [not_stub]          'process_order' just returns success without doing the work
+  • [swallowed_error]   except Exception swallows the error silently (body is just `pass`)
+  · [debt_tracked]      untracked TODO — add an owner or issue ref, e.g. TODO(#123)
+
+1 critical · 1 concern · 1 note
 ```
+
+`sweep` sees across files too — a broken `from .db import connect` (`dangling_import`) or a module nobody imports (`unwired`) only a whole-repo pass can catch.
 
 That's the **free, offline, deterministic floor** — no API key, no network, no LLM. It runs the same way every time and it does not hallucinate, because it *knows* via the AST rather than *guessing* via a model.
 
@@ -73,7 +76,9 @@ With it installed, deep structural checks run on those languages too — `not_st
 
 ## The questions
 
-Every question is either `CODE` (deterministic, free) or `JUDGMENT` (needs an LLM). **All of them are opt-in** — enable the packs you want, disable the ones you don't, add your own. Defaults are the high-signal, low-false-positive set.
+Every question is either `CODE` (deterministic, free) or `JUDGMENT` (needs an LLM). **All of them are opt-in** — enable the packs you want, disable the ones you don't, add your own. Defaults are the high-signal, low-false-positive set — calibrated against mature real-world repos (`requests`, `flask`, `click`, …) so it stays quiet on idiomatic code and loud on genuine defects.
+
+> **What ships today vs. the roadmap.** The list below is the full checklist Platão is built around. The checks **live in this release** are exactly what `platao list-checks` prints — today the connected / placebo / robustness / hygiene core (`not_stub`, `dangling_import`, `unwired`, `swallowed_error`, `dangerous_dynamic`, `debt_tracked`, `debug_leftover`, and the placebo-test checks), the deep `not_stub`/`empty_test` for other languages via `platao[deep]`, plus the nine `momo` judgment questions. The rest is the roadmap — each lands under the same proof gate (see [Contributing](#contributing--the-rigid-gate)). **Run `platao list-checks` for the authoritative set in your version.**
 
 ### Deterministic (CODE — free, offline)
 
@@ -146,6 +151,8 @@ pip install 'platao[mcp]'
 platao mcp        # stdio server; point your agent at it
 ```
 
+There's a complete, runnable **build-and-audit agent** in [`examples/agent/`](examples/agent/): a Claude Code project that wires both Platão and Basanos as MCP servers and gives an agent one rule — *build, then audit, then fix, and only then say "done"*. It ships with seeded-broken demo files so you watch the tools fire on the first run.
+
 ---
 
 ## Cost & model routing
@@ -207,6 +214,8 @@ Turn specific checks off with a `.platao.json` at your repo root (zero-dependenc
 ```json
 { "disable": ["debt_tracked", "ui_marble_tokens"] }
 ```
+
+When sweeping a tree, Platão walks past vendored and generated directories by default — `node_modules`, `.venv`/`venv`, `site-packages`, `build`/`dist`, the caches, and vendored-code dirs (`vendor`, `third_party`, `thirdparty`, …). Code you didn't write isn't yours to audit. (Point the tool straight at one of those dirs to override.)
 
 Run `platao list-checks` to see every id you can disable. A richer `.platao.yml` (question packs, importing your own `CLAUDE.md` as questions) is **planned** — the shape it will take:
 

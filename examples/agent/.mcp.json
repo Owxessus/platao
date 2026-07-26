@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "platao": {
+      "command": "platao",
+      "args": ["mcp"]
+    },
+    "basanos": {
+      "command": "basanos",
+      "args": ["mcp"]
+    }
+  }
+}

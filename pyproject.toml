@@ -44,6 +44,9 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 110
 target-version = "py310"
+# The example agent ships deliberately-broken demo code (that's the point — it's what the auditor
+# fires on). It must not be linted or it fails the very CI it demonstrates.
+extend-exclude = ["examples"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

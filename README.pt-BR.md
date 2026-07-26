@@ -24,11 +24,14 @@ platao sweep .                 # varre o repo inteiro atrás de testes-placebo e
 
 ```
 Platão — src/service.py
-  ⚠ CRÍTICO [wired]        ninguém importa 'service' — código-ilha (fiar, ou é morto)
-  ⚠ CRÍTICO [has_effect]   'process()' é testado mas o teste nunca afirma sobre ele — prova import, não efeito
-  · [debt_tracked]          2 TODOs sem ID rastreável
-  ✓ 9 verificações passaram
+  ⚠ [not_stub]          'process_order' só retorna sucesso sem fazer o trabalho
+  • [swallowed_error]   except Exception engole o erro em silêncio (corpo é só `pass`)
+  · [debt_tracked]      TODO sem rastreio — adicione dono ou ref de issue, ex. TODO(#123)
+
+1 crítico · 1 preocupação · 1 nota
 ```
+
+O `sweep` enxerga entre ficheiros também — um `from .db import connect` quebrado (`dangling_import`) ou um módulo que ninguém importa (`unwired`) só uma passada no repo inteiro pega.
 
 Esse é o **chão determinístico, grátis e offline** — sem chave de API, sem rede, sem LLM. Roda igual toda vez e **não alucina**, porque *sabe* pela AST em vez de *adivinhar* por um modelo.
 
@@ -73,7 +76,9 @@ Com ela instalada, checks estruturais profundos rodam nessas linguagens também 
 
 ## As perguntas
 
-Toda pergunta é `CODE` (determinística, grátis) ou `JUDGMENT` (precisa de LLM). **Todas são opt-in** — ligue os packs que quer, desligue os que não quer, adicione os seus. Os defaults são o conjunto de alto sinal e baixo falso-positivo.
+Toda pergunta é `CODE` (determinística, grátis) ou `JUDGMENT` (precisa de LLM). **Todas são opt-in** — ligue os packs que quer, desligue os que não quer, adicione os seus. Os defaults são o conjunto de alto sinal e baixo falso-positivo — calibrados contra repos reais maduros (`requests`, `flask`, `click`, …) para ficar quieto em código idiomático e alto em defeito genuíno.
+
+> **O que já vem hoje vs. o roadmap.** A lista abaixo é o checklist completo que orienta o Platão. Os checks **vivos nesta versão** são exatamente o que `platao list-checks` imprime — hoje o núcleo conectividade / placebo / robustez / higiene (`not_stub`, `dangling_import`, `unwired`, `swallowed_error`, `dangerous_dynamic`, `debt_tracked`, `debug_leftover`, e os checks de teste-placebo), o `not_stub`/`empty_test` profundo para outras linguagens via `platao[deep]`, mais as nove perguntas de juízo `momo`. O resto é roadmap — cada um entra sob o mesmo gate de prova (ver [Contribuindo](#contribuindo--o-gate-rígido)). **Rode `platao list-checks` para o conjunto autoritativo na sua versão.**
 
 ### Determinísticas (CODE — grátis, offline)
 
@@ -146,6 +151,8 @@ pip install 'platao[mcp]'
 platao mcp        # servidor stdio; aponte o seu agente para ele
 ```
 
+Há um **agente de construir-e-auditar** completo e rodável em [`examples/agent/`](examples/agent/): um projeto Claude Code que liga Platão e Basanos como servidores MCP e dá ao agente uma regra — *construa, depois audite, depois corrija, e só então diga "pronto"*. Vem com ficheiros de demo quebrados de propósito para você ver as tools dispararem já na primeira rodada.
+
 ---
 
 ## Custo e roteamento de modelo
@@ -207,6 +214,8 @@ Desligue checks específicos com um `.platao.json` na raiz do repo (zero-depend�
 ```json
 { "disable": ["debt_tracked", "ui_marble_tokens"] }
 ```
+
+Ao varrer uma árvore, o Platão anda por cima de diretórios vendorados e gerados por padrão — `node_modules`, `.venv`/`venv`, `site-packages`, `build`/`dist`, os caches, e pastas de código vendorado (`vendor`, `third_party`, `thirdparty`, …). Código que você não escreveu não é seu para auditar. (Aponte a tool direto numa dessas pastas para forçar.)
 
 Rode `platao list-checks` para ver todos os ids que dá para desligar. Um `.platao.yml` mais rico (packs de perguntas, importar o seu `CLAUDE.md` como perguntas) está **planeado** — a forma que ele terá:
 
