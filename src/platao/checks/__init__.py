@@ -17,6 +17,7 @@ from dataclasses import dataclass
 
 from platao.context import FileContext
 from platao.finding import Finding, Severity
+from platao.project import ProjectIndex
 
 # What a raw check body may yield: a bare (line, message), a (line, message, severity), or a
 # fully-formed Finding for the rare check that wants total control.
@@ -65,7 +66,7 @@ def register(
                 sev = item[2] if len(item) > 2 else severity  # type: ignore[misc]
                 yield Finding(check_id, category, sev, ctx.path, line, message, ctx.snippet(line))
 
-        if check_id in REGISTRY:
+        if check_id in REGISTRY or check_id in PROJECT_REGISTRY:
             raise ValueError(f"duplicate check id: {check_id!r}")
         REGISTRY[check_id] = Check(check_id, category, severity, wrapped, test_only)
         return wrapped
@@ -73,6 +74,37 @@ def register(
     return decorator
 
 
-# Importing the submodules is what populates REGISTRY (each @register runs at import time).
-# Kept at the bottom so `register` is defined before the submodules import it.
-from platao.checks import hygiene, placebo, robustness  # noqa: E402,F401
+# ── project-wide checks (need the whole file set, not one file) ────────────────────────────────
+ProjectCheckFn = Callable[[ProjectIndex], Iterator[Finding]]
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectCheck:
+    """A check that reads the whole :class:`~platao.project.ProjectIndex` and yields findings."""
+
+    id: str
+    category: str
+    severity: Severity
+    fn: ProjectCheckFn
+
+
+PROJECT_REGISTRY: dict[str, ProjectCheck] = {}
+
+
+def project_check(
+    check_id: str, category: str, severity: Severity
+) -> Callable[[ProjectCheckFn], ProjectCheckFn]:
+    """Register a project-wide check. Its body yields fully-formed :class:`Finding` objects."""
+
+    def decorator(fn: ProjectCheckFn) -> ProjectCheckFn:
+        if check_id in REGISTRY or check_id in PROJECT_REGISTRY:
+            raise ValueError(f"duplicate check id: {check_id!r}")
+        PROJECT_REGISTRY[check_id] = ProjectCheck(check_id, category, severity, fn)
+        return fn
+
+    return decorator
+
+
+# Importing the submodules is what populates the registries (each decorator runs at import time).
+# Kept at the bottom so `register` / `project_check` are defined before the submodules import them.
+from platao.checks import hygiene, placebo, project, robustness  # noqa: E402,F401

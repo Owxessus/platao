@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 from platao import __version__
-from platao.checks import REGISTRY
+from platao.checks import PROJECT_REGISTRY, REGISTRY
 from platao.engine import analyze_paths
 from platao.report import render
 
@@ -44,7 +44,9 @@ def _audit(args: argparse.Namespace) -> int:
 def _list_checks() -> int:
     for chk in sorted(REGISTRY.values(), key=lambda c: (c.category, c.id)):
         scope = "  (test-only)" if chk.test_only else ""
-        print(f"{chk.severity.value:<6} {chk.category:<11} {chk.id}{scope}")
+        print(f"{chk.severity.value:<6} {chk.category:<12} {chk.id}{scope}")
+    for chk in sorted(PROJECT_REGISTRY.values(), key=lambda c: (c.category, c.id)):
+        print(f"{chk.severity.value:<6} {chk.category:<12} {chk.id}  (project-wide)")
     return 0
 
 
