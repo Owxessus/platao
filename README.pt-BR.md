@@ -202,34 +202,20 @@ O juízo é **consultivo**: os achados aparecem mas **não mexem no exit code** 
 
 ### Ficheiro de config
 
-Um `.platao.yml` para ligar/desligar perguntas e packs está **planeado**; hoje, use os flags acima e `list-checks`. A forma que ele terá:
+Desligue checks específicos com um `.platao.json` na raiz do repo (zero-dependência, real hoje). Sem ficheiro = nada desligado:
 
-Tudo é opt-in via `.platao.yml` na raiz do repo. Sem ficheiro = defaults sensatos (o conjunto determinístico de alto sinal, juízo desligado).
+```json
+{ "disable": ["debt_tracked", "ui_marble_tokens"] }
+```
+
+Rode `platao list-checks` para ver todos os ids que dá para desligar. Um `.platao.yml` mais rico (packs de perguntas, importar o seu `CLAUDE.md` como perguntas) está **planeado** — a forma que ele terá:
 
 ```yaml
-# .platao.yml
-judge:
-  enabled: false            # ligue a camada de LLM explicitamente
-  model: deepseek-v3.2      # você escolhe o cérebro
-  # api_key: env(OPENROUTER_API_KEY)   # BYO — nunca armazenado pelo Platão
-
+# .platao.yml (planeado)
 questions:
-  packs:                    # ligue/desligue grupos inteiros
-    connected: true
-    placebo: true
-    robustness: true
-    hygiene: true
-    judgment: false         # o grupo BYO-LLM
-  disable: [typed_documented]   # tire perguntas individuais que não quer
-  import: [CLAUDE.md]           # transforme as suas regras da casa em perguntas
-
-# Adicione uma pergunta em uma linha — id, o prompt, se é CODE ou JUDGMENT, severidade.
-custom:
-  - id: no_console_log
-    kind: CODE
-    severity: low
-    detect: 'console\.log'    # padrão simples, ou aponte para um módulo checker
-    prompt: "Deixou um console.log para trás?"
+  packs: { connected: true, placebo: true, robustness: true, hygiene: true, judgment: false }
+  disable: [typed_documented]
+  import: [CLAUDE.md]      # transforme as suas regras da casa em perguntas
 ```
 
 ---

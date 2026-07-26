@@ -202,34 +202,20 @@ Judgment is **advisory**: its findings are shown but **do not drive the exit cod
 
 ### Config file
 
-A `.platao.yml` for enabling/disabling questions and packs is **planned**; today, use the flags above and `list-checks`. The shape it will take:
+Turn specific checks off with a `.platao.json` at your repo root (zero-dependency, real today). No file = nothing disabled:
 
-Everything is opt-in via `.platao.yml` at your repo root. No file = sensible defaults (the high-signal deterministic set, judgment off).
+```json
+{ "disable": ["debt_tracked", "ui_marble_tokens"] }
+```
+
+Run `platao list-checks` to see every id you can disable. A richer `.platao.yml` (question packs, importing your own `CLAUDE.md` as questions) is **planned** — the shape it will take:
 
 ```yaml
-# .platao.yml
-judge:
-  enabled: false            # opt into the LLM layer explicitly
-  model: deepseek-v3.2      # you pick the brain
-  # api_key: env(OPENROUTER_API_KEY)   # BYO — never stored by Platão
-
+# .platao.yml (planned)
 questions:
-  packs:                    # turn whole groups on/off
-    connected: true
-    placebo: true
-    robustness: true
-    hygiene: true
-    judgment: false         # the BYO-LLM group
-  disable: [typed_documented]   # drop individual questions you don't want
-  import: [CLAUDE.md]           # turn your own house rules into questions
-
-# Add a question in one line — id, the prompt, whether it's CODE or JUDGMENT, severity.
-custom:
-  - id: no_console_log
-    kind: CODE
-    severity: low
-    detect: 'console\.log'    # simple pattern, or point to a checker module
-    prompt: "Left a console.log behind?"
+  packs: { connected: true, placebo: true, robustness: true, hygiene: true, judgment: false }
+  disable: [typed_documented]
+  import: [CLAUDE.md]      # turn your house rules into questions
 ```
 
 ---

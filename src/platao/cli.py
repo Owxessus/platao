@@ -27,11 +27,17 @@ from platao.report import render
 
 
 def _audit(args: argparse.Namespace) -> int:
+    from platao.config import Config
+
     root = Path(args.root) if args.root else Path.cwd()
     findings = analyze_paths([Path(p) for p in args.paths], root=root)
 
     if getattr(args, "judge", False):
         findings = sorted([*findings, *_run_judgment(args, root)], key=lambda f: f.sort_key)
+
+    disabled = Config.load(root).disable
+    if disabled:
+        findings = [f for f in findings if f.check_id not in disabled]
 
     if args.json:
         print(json.dumps([f.to_dict() for f in findings], indent=2, ensure_ascii=False))
