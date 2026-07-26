@@ -81,6 +81,40 @@ def _run_judgment(args: argparse.Namespace, root: Path):
     return out
 
 
+def _install_hook() -> int:
+    """Install a git pre-commit hook that runs ``platao check`` on staged files."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-dir"], capture_output=True, text=True, check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        print("not a git repository (run this from inside your repo)", file=sys.stderr)
+        return 2
+
+    marker = "# platao pre-commit"
+    hook = Path(result.stdout.strip()) / "hooks" / "pre-commit"
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    if hook.exists() and marker not in hook.read_text(encoding="utf-8", errors="ignore"):
+        print(f"a pre-commit hook already exists at {hook}.\n"
+              f"Add `platao check` to it yourself, or remove it and re-run.", file=sys.stderr)
+        return 1
+
+    hook.write_text(
+        "#!/bin/sh\n"
+        f"{marker} — audit staged files, block the commit on a HIGH finding\n"
+        'files=$(git diff --cached --name-only --diff-filter=ACM)\n'
+        '[ -z "$files" ] && exit 0\n'
+        "platao check $files\n",
+        encoding="utf-8",
+    )
+    with contextlib.suppress(OSError):
+        hook.chmod(0o755)
+    print(f"installed pre-commit hook at {hook}")
+    return 0
+
+
 def _run_mcp() -> int:
     try:
         from platao.mcp_server import run
@@ -156,12 +190,15 @@ def main(argv: list[str] | None = None) -> int:
     _add_audit_args(sub.add_parser("sweep", help="audit a whole tree for placebo & unfinished work"))
     sub.add_parser("list-checks", help="show the registered checks")
     sub.add_parser("mcp", help="run the MCP server (stdio) — exposes Platão to agents")
+    sub.add_parser("install-hook", help="install a git pre-commit hook that runs `platao check`")
 
     args = parser.parse_args(argv)
     if args.cmd == "list-checks":
         return _list_checks()
     if args.cmd == "mcp":
         return _run_mcp()
+    if args.cmd == "install-hook":
+        return _install_hook()
     return _audit(args)
 
 
