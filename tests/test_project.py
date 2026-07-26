@@ -97,3 +97,31 @@ def test_dangling_import__submodule_import_is_silent(tmp_path: Path):
         "pkg/user.py": "from pkg import sub\n",
     })
     assert "dangling_import" not in findings_by_id(tmp_path)
+
+
+def test_dangling_import__try_guarded_definition_is_silent(tmp_path: Path):  # FP guard (psf/requests)
+    # `is_urllib3_1` is defined in both branches of a top-level try/except — a real module attribute.
+    _pkg(tmp_path, {
+        "pkg/__init__.py": "",
+        "pkg/compat.py": (
+            "try:\n    is_v1 = detect() == 1\n"
+            "except (TypeError, AttributeError):\n    is_v1 = True\n"
+        ),
+        "pkg/user.py": "from pkg.compat import is_v1\n",
+    })
+    assert "dangling_import" not in findings_by_id(tmp_path)
+
+
+def test_dangling_import__if_guarded_and_unpacked_definition_is_silent(tmp_path: Path):
+    # Conditional def under `if`, plus tuple-unpacked names — both are exposed module attributes.
+    _pkg(tmp_path, {
+        "pkg/__init__.py": "",
+        "pkg/compat.py": (
+            "import sys\n"
+            "if sys.version_info >= (3, 12):\n    def newapi():\n        return 1\n"
+            "else:\n    def newapi():\n        return 2\n"
+            "A, B = 1, 2\n"
+        ),
+        "pkg/user.py": "from pkg.compat import newapi, A, B\n",
+    })
+    assert "dangling_import" not in findings_by_id(tmp_path)

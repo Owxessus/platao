@@ -52,28 +52,27 @@ def debt_tracked(ctx: FileContext) -> Iterable[tuple[int, str]]:
         yield (tok.start[0], f"untracked {marker} — add an owner or issue ref, e.g. {marker}(#123)")
 
 
-# Modules that only exist to break execution — a debugger left running is the tell.
-_DEBUG_IMPORTS = frozenset({"pdb", "ipdb", "pudb"})
-_DEBUG_CALLS = frozenset({"set_trace", "post_mortem"})
+# The unambiguous "I forgot to remove my breakpoint" calls. NOT the bare `import pdb` — that's a
+# legitimate dependency (a CLI or test util that manages the debugger), and NOT `post_mortem`, which
+# is a real "drop into the debugger on crash" feature. Only a stray `set_trace`/`breakpoint()` call
+# is nearly-always an accident, which is what keeps this check near-zero false-positive.
+_DEBUG_CALLS = frozenset({"set_trace"})
 
 
 @register("debug_leftover", "hygiene", Severity.LOW)
 def debug_leftover(ctx: FileContext) -> Iterable[tuple[int, str]]:
-    """A debugger left in the source: ``breakpoint()``, ``pdb.set_trace()``, or ``import pdb``.
+    """A debugger *call* left in the source: ``breakpoint()`` or ``pdb.set_trace()`` / ``ipdb.set_trace()``.
 
-    Deliberately narrow — ``print`` is legitimate in a CLI and too noisy to flag; a debugger is
-    almost never intentional in committed code, so this stays near-zero false-positive.
+    Deliberately narrow — ``print`` is legitimate in a CLI and too noisy to flag; a bare ``import pdb``
+    is a real dependency (``click.testing`` uses it to manage the debugger), not a leftover; and
+    ``pdb.post_mortem()`` is a genuine feature. Only the stray breakpoint call is flagged, so this
+    stays near-zero false-positive.
     """
     for node in ast.walk(ctx.tree):
-        if isinstance(node, ast.Call):
-            func = node.func
-            if isinstance(func, ast.Name) and func.id == "breakpoint":
-                yield (node.lineno, "`breakpoint()` left in the code")
-            elif isinstance(func, ast.Attribute) and func.attr in _DEBUG_CALLS:
-                yield (node.lineno, f"debugger `{dotted_name(func) or func.attr}()` left in the code")
-        elif isinstance(node, ast.Import):
-            if any(alias.name in _DEBUG_IMPORTS for alias in node.names):
-                yield (node.lineno, "debugger import (pdb/ipdb) left in the code")
-        elif isinstance(node, ast.ImportFrom):
-            if node.module in _DEBUG_IMPORTS:
-                yield (node.lineno, "debugger import (pdb/ipdb) left in the code")
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Name) and func.id == "breakpoint":
+            yield (node.lineno, "`breakpoint()` left in the code")
+        elif isinstance(func, ast.Attribute) and func.attr in _DEBUG_CALLS:
+            yield (node.lineno, f"debugger `{dotted_name(func) or func.attr}()` left in the code")

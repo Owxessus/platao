@@ -141,3 +141,37 @@ def except_name(handler: ast.ExceptHandler) -> str:
         names = [dotted_name(e) or "?" for e in handler.type.elts]
         return "except (" + ", ".join(names) + ")"
     return "except " + (dotted_name(handler.type) or "?")
+
+
+# The catch-alls: a handler on one of these swallows *everything*, including the bugs you never
+# meant to hide. A handler on a specific exception (`except KeyError`, `except (ImportError,
+# AttributeError)`) is a deliberate "I expect this one and it's fine" — the dominant idiom in mature
+# code (optional imports, feature detection, generator exhaustion), and flagging it cries wolf.
+_BROAD_EXCEPTIONS = frozenset({"Exception", "BaseException"})
+
+
+def is_broad_except(handler: ast.ExceptHandler) -> bool:
+    """Does this ``except`` catch *everything* — bare, or ``Exception``/``BaseException``?
+
+    Broad catches are where a silent ``pass`` is genuinely dangerous (a real bug vanishes with no
+    trace). Narrow, specific catches are almost always an intentional "expected, ignore it", so we
+    don't treat them as defects.
+    """
+    if handler.type is None:
+        return True
+    elts = handler.type.elts if isinstance(handler.type, ast.Tuple) else [handler.type]
+    return any(dotted_name(e).rsplit(".", 1)[-1] in _BROAD_EXCEPTIONS for e in elts)
+
+
+def catches_interrupts(handler: ast.ExceptHandler) -> bool:
+    """Does this catch-all also swallow ``SystemExit`` / ``KeyboardInterrupt``?
+
+    A bare ``except:`` or ``except BaseException:`` eats the interrupt signals too — swallowing one
+    silently means Ctrl-C and ``sys.exit()`` stop working, a genuine bug. ``except Exception:`` does
+    *not* catch those (they derive from ``BaseException``, not ``Exception``), so a silent pass there
+    is a smell but not dangerous — worth a lower severity.
+    """
+    if handler.type is None:
+        return True
+    elts = handler.type.elts if isinstance(handler.type, ast.Tuple) else [handler.type]
+    return any(dotted_name(e).rsplit(".", 1)[-1] == "BaseException" for e in elts)

@@ -19,17 +19,19 @@ from platao.project import ProjectIndex
 _WIRED_EXEMPT_BASENAMES = frozenset({"__init__.py", "__main__.py", "conftest.py", "setup.py"})
 
 
-@project_check("unwired", "connectivity", Severity.MEDIUM)
+@project_check("unwired", "connectivity", Severity.LOW)
 def unwired(index: ProjectIndex) -> Iterable[Finding]:
-    """A module nobody imports — island code (wire it, or it's dead).
+    """A module nobody in the scanned tree imports — possibly dead, possibly public API.
 
     Exemptions keep it honest: test files, package ``__init__``/``__main__``/``conftest``/``setup``,
     and anything with an ``if __name__ == "__main__"`` guard or living under ``scripts``/``bin`` are
     entry points, not islands. A module re-exported by its package's ``__init__`` counts as imported
-    (that shows up as an import target in the index), so public API isn't misread as dead.
+    (that shows up as an import target in the index), so public API *that is re-exported* isn't misread.
 
-    Only runs over a scanned tree — auditing a single named file can't see who imports it, so we don't
-    guess "dead" there.
+    Kept at **LOW**: for a library, a public submodule imported only by downstream code (e.g.
+    ``click.testing``) is genuinely unimported *inside* the repo yet not dead — a fact no in-tree
+    analysis can settle. So this is an advisory hint to eyeball, not a defect that fails CI. Only runs
+    over a scanned tree — auditing a single named file can't see who imports it.
     """
     if not index.whole_project:
         return
@@ -41,9 +43,9 @@ def unwired(index: ProjectIndex) -> Iterable[Finding]:
         if m.module in index.imported_targets:
             continue
         yield index.finding(
-            m, "unwired", "connectivity", Severity.MEDIUM, 1,
-            f"module '{m.module}' is imported by nobody in the project — island code "
-            f"(wire it, or it's dead)",
+            m, "unwired", "connectivity", Severity.LOW, 1,
+            f"module '{m.module}' is imported by nobody in the scanned tree — dead code, or public "
+            f"API used only by downstream consumers (eyeball it)",
         )
 
 

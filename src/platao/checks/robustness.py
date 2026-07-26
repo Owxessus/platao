@@ -11,28 +11,48 @@ import ast
 from collections.abc import Iterable
 
 from platao.checks import register
-from platao.checks._ast import except_name, is_ellipsis
+from platao.checks._ast import catches_interrupts, except_name, is_broad_except, is_ellipsis
 from platao.context import FileContext
 from platao.finding import Severity
 
 
-@register("swallowed_error", "robustness", Severity.HIGH)
-def swallowed_error(ctx: FileContext) -> Iterable[tuple[int, str]]:
-    """An ``except`` whose entire body is ``pass`` (or ``...``) — the error vanishes with no trace.
+@register("swallowed_error", "robustness", Severity.MEDIUM)
+def swallowed_error(ctx: FileContext) -> Iterable[tuple[int, str] | tuple[int, str, Severity]]:
+    """A *broad* ``except`` whose entire body is ``pass`` (or ``...``) — the error vanishes silently.
 
-    We flag only the truly-empty handler. ``except X: return default`` is a choice; ``except X:
-    logger.exception(...)`` is handled; ``except X: pass`` is an error dropped on the floor, and
-    the single hardest failure to diagnose later.
+    We flag only the catch-all shape and split it by real danger:
+
+    * **HIGH** — a bare ``except:`` or ``except BaseException:``. These swallow ``SystemExit`` and
+      ``KeyboardInterrupt`` too, so a silent ``pass`` quietly breaks Ctrl-C and ``sys.exit()`` — a bug.
+    * **MEDIUM** — ``except Exception: pass``. A real smell (an error dropped with no log or re-raise),
+      but a widely-accepted best-effort idiom in mature code, so it's advisory rather than a hard fail.
+
+    A *narrow*, specific catch (``except StopIteration: pass``, ``except (ImportError, AttributeError):
+    pass``) is the deliberate "I expect this exact thing and it's fine" idiom — flagging it would cry
+    wolf, so we leave it alone. ``except X: return default`` and ``except X: logger.exception`` are
+    handled, not swallowed, and never matched.
     """
     for node in ast.walk(ctx.tree):
         if not isinstance(node, ast.ExceptHandler):
             continue
         body = node.body
-        if len(body) == 1 and (isinstance(body[0], ast.Pass) or is_ellipsis(body[0])):
+        if not (len(body) == 1 and (isinstance(body[0], ast.Pass) or is_ellipsis(body[0]))):
+            continue
+        if not is_broad_except(node):
+            continue  # narrow specific catch — an intentional idiom, not a dropped error
+        if catches_interrupts(node):
+            yield (
+                node.lineno,
+                f"{except_name(node)} swallows every error — including SystemExit/KeyboardInterrupt "
+                f"(Ctrl-C) — with no log or re-raise",
+                Severity.HIGH,
+            )
+        else:
             yield (
                 node.lineno,
                 f"{except_name(node)} swallows the error silently (body is just `pass`) — "
                 f"no log, no re-raise",
+                Severity.MEDIUM,
             )
 
 

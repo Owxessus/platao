@@ -141,16 +141,45 @@ def _index_one(path: Path, display: str, tree: ast.Module, source: str) -> Modul
                 info.from_imports.append((node.lineno, base, alias.name))
                 info.bound_names.add(alias.asname or alias.name)
     # Top-level definitions expose names too (for `dangling_import` re-export resolution).
-    for node in tree.body:
+    _collect_module_binds(tree.body, info.bound_names)
+    return info
+
+
+def _add_assign_target(target: ast.expr, into: set[str]) -> None:
+    """Record the name(s) bound by an assignment target, unpacking ``a, (b, c) = ...``."""
+    if isinstance(target, ast.Name):
+        into.add(target.id)
+    elif isinstance(target, ast.Tuple | ast.List):
+        for elt in target.elts:
+            _add_assign_target(elt, into)
+
+
+def _collect_module_binds(body: list[ast.stmt], into: set[str]) -> None:
+    """Names a module exposes at import time — descending into ``try``/``if``/``with``/loops.
+
+    A name defined inside a top-level ``try/except`` (optional import, version detection) or an ``if``
+    is still a module attribute; only bodies that run at import time are followed (not nested function
+    or class bodies). Missing these was a false ``dangling_import`` on the conditional-definition idiom.
+    """
+    for node in body:
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
-            info.bound_names.add(node.name)
+            into.add(node.name)
         elif isinstance(node, ast.Assign):
             for target in node.targets:
-                if isinstance(target, ast.Name):
-                    info.bound_names.add(target.id)
+                _add_assign_target(target, into)
         elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-            info.bound_names.add(node.target.id)
-    return info
+            into.add(node.target.id)
+        elif isinstance(node, ast.Try):
+            _collect_module_binds(node.body, into)
+            for handler in node.handlers:
+                _collect_module_binds(handler.body, into)
+            _collect_module_binds(node.orelse, into)
+            _collect_module_binds(node.finalbody, into)
+        elif isinstance(node, ast.If | ast.For | ast.AsyncFor | ast.While):
+            _collect_module_binds(node.body, into)
+            _collect_module_binds(node.orelse, into)
+        elif isinstance(node, ast.With | ast.AsyncWith):
+            _collect_module_binds(node.body, into)
 
 
 _SCRIPT_DIRS = frozenset({"scripts", "bin", "examples"})
