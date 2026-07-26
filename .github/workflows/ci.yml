@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e . ruff pytest
+      - name: Lint
+        run: ruff check src tests
+      - name: The proof gate — every check must pass its prove_effect + negative_control
+        run: pytest -q
+      - name: Dogfood — Platão must survive its own audit
+        run: python -m platao.cli sweep src --fail-on high
