@@ -104,3 +104,17 @@ def test_skipped_test_is_not_flagged():
     # it.skip / test.only are member calls, not `it(...)` — deliberately excluded.
     src = 'it.skip("later", () => {\n  const r = run();\n});'
     assert "empty_test" not in ids(src, "x.test.ts")
+
+
+# ── Ruby empty rescue (swallowed_error via deep AST) ──────────────────────────────
+
+def test_ruby_empty_bare_rescue_is_caught():
+    assert "swallowed_error" in ids("begin\n  risky\nrescue\nend\n", "app.rb")
+
+
+def test_ruby_empty_rescue_with_class_is_caught():
+    assert "swallowed_error" in ids("def f\n  risky\nrescue StandardError\nend\n", "app.rb")
+
+
+def test_ruby_handled_rescue_is_silent():  # negative control
+    assert "swallowed_error" not in ids("begin\n  risky\nrescue => e\n  log(e)\nend\n", "app.rb")

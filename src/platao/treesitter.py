@@ -119,7 +119,33 @@ def scan(path: str, source: str) -> list[Finding]:
         stack.extend(node.children)
 
     out.extend(_scan_empty_tests(tree.root_node, lang, path))
+    out.extend(_scan_empty_rescue(tree.root_node, lang, path))
     out.sort(key=lambda f: f.sort_key)
+    return out
+
+
+def _scan_empty_rescue(root, lang: str, path: str) -> list[Finding]:
+    """Ruby's swallowed error: a ``rescue`` clause with an empty body — the ``catch {}`` of Ruby.
+
+    Ruby is ``end``-delimited, not brace-delimited, so the regex ``polyglot`` layer (which looks for
+    ``catch {}``) can't see it. Here a real AST can: a ``rescue`` node with no ``then`` (body) child is
+    an empty handler. MEDIUM, like an empty ``except Exception``/``catch`` — a bare ``rescue`` catches
+    ``StandardError``, not the interrupt signals, so it's a smell, not the dangerous kind.
+    """
+    if lang != "ruby":
+        return []
+    out: list[Finding] = []
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        # `node.is_named` excludes the anonymous `rescue` *keyword* token (also typed "rescue"); we
+        # want only the rescue *clause* node. An empty clause has no `then` (body) child.
+        if node.type == "rescue" and node.is_named and not any(c.type == "then" for c in node.children):
+            out.append(Finding(
+                "swallowed_error", "robustness", Severity.MEDIUM, path, node.start_point[0] + 1,
+                "empty rescue swallows the error silently — no log, no re-raise",
+            ))
+        stack.extend(node.children)
     return out
 
 
