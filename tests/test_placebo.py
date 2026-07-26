@@ -116,3 +116,26 @@ def test_no_negative_control__failure_named_test_is_silent():
         "def test_it_fails_on_bad_input():\n    r = run(bad=True)\n    assert not r.success\n"
     )
     assert "no_negative_control" not in ids(src, "tests/test_it.py")
+
+
+# ── oracle_independent (asserts on a dict the test itself wrote) ────────────────────
+
+def test_oracle_independent__self_written_dict_is_caught():
+    src = ('def test_it():\n    state = {}\n    state["ok"] = True\n    assert state["ok"]\n')
+    assert "oracle_independent" in ids(src, "tests/test_x.py")
+
+
+def test_oracle_independent__asserting_sut_effect_is_silent():  # negative control
+    # The SUT fills the dict; the test reads it — a legitimate oracle, not self-written.
+    src = ('def test_it():\n    state = {}\n    run(state)\n    assert state["ok"]\n')
+    assert "oracle_independent" not in ids(src, "tests/test_x.py")
+
+
+def test_oracle_independent__spy_capture_is_silent():  # the calibration — nested write
+    src = (
+        'def test_it(monkeypatch):\n    captured = {}\n'
+        '    def _spy(**kw):\n        captured["body"] = kw\n'
+        '    monkeypatch.setattr(mod, "post", _spy)\n    run()\n'
+        '    assert captured["body"] == {"x": 1}\n'
+    )
+    assert "oracle_independent" not in ids(src, "tests/test_x.py")

@@ -36,6 +36,15 @@ def _functions(tree: ast.AST) -> Iterable[ast.FunctionDef | ast.AsyncFunctionDef
             yield node
 
 
+def _is_literalish(node: ast.expr) -> bool:
+    """A literal value the test wrote itself (constant or a container literal) — not a call/name.
+
+    ``d[k] = 5`` / ``d[k] = [1, 2]`` is the test's own setup; ``d[k] = compute()`` stores the SUT's
+    output, which is a real thing to assert on. Only the former makes an assert a self-report.
+    """
+    return isinstance(node, ast.Constant | ast.List | ast.Dict | ast.Tuple | ast.Set)
+
+
 @register("not_stub", "placebo", Severity.HIGH)
 def not_stub(ctx: FileContext) -> Iterable[tuple[int, str]]:
     """An action-named function whose body does nothing — the archetypal placebo.
@@ -115,6 +124,66 @@ def _is_self_report(test: ast.expr) -> bool:
         )
         return has_status and has_success_word
     return False
+
+
+@register("oracle_independent", "placebo", Severity.MEDIUM, test_only=True)
+def oracle_independent(ctx: FileContext) -> Iterable[tuple[int, str]]:
+    """A test that asserts on a dict *it wrote itself* — validating its own setup, not a real effect.
+
+    ``state = {}; state["ok"] = True; assert state["ok"]`` proves nothing about the code under test —
+    the test wrote the value it then checks. The fix is to assert on something the SUT produced.
+
+    The calibration that keeps this honest: writes inside a **nested function / lambda** (a spy or mock
+    callback) don't count — there the SUT is the one writing, when it calls the callback, so asserting
+    on what the spy captured is a legitimate oracle of real behavior, not a placebo.
+    """
+    for fn in _functions(ctx.tree):
+        if not fn.name.lower().startswith("test"):
+            continue
+        nested_ids: set[int] = set()
+        for inner in ast.walk(fn):
+            if inner is fn:
+                continue
+            if isinstance(inner, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda):
+                nested_ids.update(id(d) for d in ast.walk(inner))
+        # Only *plain* dicts the test itself creates as ad-hoc state — `d = {}` / `d = dict()`. A
+        # domain object (`d = CaseInsensitiveDict()`, a cookie jar) is often the thing under test, and
+        # writing-then-reading it exercises real behavior, so it must NOT count.
+        plain_dicts: set[str] = set()
+        for node in ast.walk(fn):
+            if id(node) in nested_ids:
+                continue
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 \
+                    and isinstance(node.targets[0], ast.Name):
+                value = node.value
+                if isinstance(value, ast.Dict) or (isinstance(value, ast.Call)
+                        and isinstance(value.func, ast.Name) and value.func.id == "dict"):
+                    plain_dicts.add(node.targets[0].id)
+        # …and only when a LITERAL is written into it. `d[k] = sut()` stores the SUT's output — reading
+        # it back is a real oracle; `d[k] = 5` then `assert d[k] == 5` proves only the test's own setup.
+        written: set[str] = set()
+        for node in ast.walk(fn):
+            if id(node) in nested_ids or not isinstance(node, ast.Assign):
+                continue
+            for target in node.targets:
+                if isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name) \
+                        and target.value.id in plain_dicts and _is_literalish(node.value):
+                    written.add(target.value.id)
+        if not written:
+            continue
+        seen: set[int] = set()
+        for node in ast.walk(fn):
+            if not isinstance(node, ast.Assert):
+                continue
+            for sub in ast.walk(node.test):
+                if isinstance(sub, ast.Subscript) and isinstance(sub.value, ast.Name) \
+                        and sub.value.id in written and node.lineno not in seen:
+                    seen.add(node.lineno)
+                    yield (
+                        node.lineno,
+                        f"asserts on '{sub.value.id}[…]' that the test itself wrote a few lines up — "
+                        f"no independent oracle of the real effect",
+                    )
 
 
 @register("assert_selfreport", "placebo", Severity.MEDIUM, test_only=True)
