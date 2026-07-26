@@ -21,6 +21,9 @@ from platao.project import build_index
 _SKIP_DIRS = frozenset({
     ".git", "__pycache__", "node_modules", ".venv", "venv", "build", "dist",
     ".mypy_cache", ".pytest_cache", ".ruff_cache", ".tox", "site-packages",
+    # Vendored external code — you didn't write it, so don't audit it by default. (Point the tool
+    # straight at one of these dirs to override; the skip only applies while walking a tree.)
+    "vendor", "vendored", "third_party", "thirdparty", ".eggs", "bower_components",
 })
 
 

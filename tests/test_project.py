@@ -112,6 +112,15 @@ def test_dangling_import__try_guarded_definition_is_silent(tmp_path: Path):  # F
     assert "dangling_import" not in findings_by_id(tmp_path)
 
 
+def test_dangling_import__implicit_dunder_is_silent(tmp_path: Path):  # FP guard (httpie/cli)
+    # `from pkg import __doc__` is valid — the interpreter provides __doc__ on every module.
+    _pkg(tmp_path, {
+        "pkg/__init__.py": "'a package docstring'\n",
+        "pkg/user.py": "from pkg import __doc__, __name__\n",
+    })
+    assert "dangling_import" not in findings_by_id(tmp_path)
+
+
 def test_dangling_import__if_guarded_and_unpacked_definition_is_silent(tmp_path: Path):
     # Conditional def under `if`, plus tuple-unpacked names — both are exposed module attributes.
     _pkg(tmp_path, {

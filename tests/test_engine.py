@@ -58,6 +58,19 @@ def test_check_payload_ok_when_clean(tmp_path: Path):
     assert payload["findings"] == []
 
 
+def test_vendored_dirs_are_skipped(tmp_path: Path):  # scope guard (sqlmap bundles thirdparty/)
+    # Vendored external code isn't yours to audit — a `thirdparty/`/`vendor/` tree is walked past.
+    (tmp_path / "app.py").write_text("def execute():\n    pass\n", encoding="utf-8")  # HIGH not_stub
+    for vendor in ("thirdparty", "vendor", "node_modules"):
+        d = tmp_path / vendor
+        d.mkdir()
+        (d / "lib.py").write_text("def run():\n    pass\n", encoding="utf-8")  # would be HIGH too
+    findings = analyze_paths([tmp_path], root=tmp_path)
+    paths = {f.path.replace("\\", "/") for f in findings}
+    assert any("app.py" in p for p in paths)                       # own code is audited
+    assert not any("thirdparty" in p or "vendor" in p or "node_modules" in p for p in paths)
+
+
 def test_platao_is_clean_on_its_own_source():
     """The auditor must survive its own audit — no findings on the shipped package (dogfooding)."""
     src_dir = Path(__file__).resolve().parent.parent / "src" / "platao"

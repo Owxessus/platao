@@ -18,6 +18,13 @@ from platao.project import ProjectIndex
 # Files that are unconnected by design — never flag them as islands.
 _WIRED_EXEMPT_BASENAMES = frozenset({"__init__.py", "__main__.py", "conftest.py", "setup.py"})
 
+# Dunders the interpreter puts on every module implicitly — `from pkg import __doc__` is valid even
+# though nothing assigns them in the source. Importing one is never a broken import.
+_IMPLICIT_MODULE_DUNDERS = frozenset({
+    "__doc__", "__name__", "__file__", "__loader__", "__spec__",
+    "__package__", "__builtins__", "__dict__", "__path__",
+})
+
 
 @project_check("unwired", "connectivity", Severity.LOW)
 def unwired(index: ProjectIndex) -> Iterable[Finding]:
@@ -62,6 +69,8 @@ def dangling_import(index: ProjectIndex) -> Iterable[Finding]:
             target = index.modules.get(base)
             if target is None or target.has_star_import:
                 continue  # external, or we can't see everything it re-exports
+            if name in _IMPLICIT_MODULE_DUNDERS:
+                continue  # `from pkg import __doc__` — the interpreter provides it, not the source
             if name in target.bound_names:
                 continue
             if f"{base}.{name}" in index.modules:
