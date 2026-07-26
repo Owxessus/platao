@@ -24,6 +24,7 @@ dependencies = []   # zero runtime dependencies — stdlib only, fully understoo
 
 [project.optional-dependencies]
 mcp = ["mcp>=1.2"]   # only the MCP server adapter needs this; the core stays zero-dep
+deep = ["tree-sitter-language-pack>=0.7"]   # deep multi-language checks; core stays zero-dep without it
 
 [project.urls]
 Homepage = "https://github.com/Owxessus/platao"

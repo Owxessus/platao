@@ -63,7 +63,13 @@ The floor is what makes Platão trustworthy. The ceiling is what makes it *smart
 
 Platão's **deep** checks — the placebo/completeness analysis and the import graph — read Python's AST, so they run on `.py`. On **any other language** (JS, TS, Go, Ruby, PHP, Java, …) it runs a **universal layer**: the checks that hold everywhere, matched robustly without a parser — an empty `catch` that swallows an error, dynamic `eval`, a debugger left in the code, an untracked `TODO`. So `platao check app.ts` is real, not a no-op.
 
-That layer is deliberately shallow (a pattern is not an AST — it catches the universal smells, not the deep ones). **Full per-language deep analysis via tree-sitter is planned** — it's the biggest thing on the roadmap. Today: deep in Python, broad everywhere.
+That regex layer is deliberately shallow. For **deep** multi-language analysis there's an optional tree-sitter layer:
+
+```bash
+pip install 'platao[deep]'   # adds real ASTs for JS, TS, Go, Ruby, Java, Rust, PHP, C#, …
+```
+
+With it installed, deep structural checks run on those languages too — starting with `not_stub` (an action-named function with a genuinely empty body, told apart from an honest abstract declaration). The core stays zero-dependency without the extra; the polyglot regex layer still covers those files. More deep checks land as tree-sitter queries beside `not_stub`. Today: deep in Python (always) and in the deep-layer languages (with the extra), broad everywhere.
 
 ## The questions
 

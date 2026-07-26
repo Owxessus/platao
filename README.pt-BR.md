@@ -63,7 +63,13 @@ O chão é o que torna o Platão confiável. O teto é o que o torna *esperto* s
 
 Os checks **profundos** do Platão — a análise de placebo/completude e o grafo de imports — leem a AST de Python, então rodam em `.py`. Em **qualquer outra linguagem** (JS, TS, Go, Ruby, PHP, Java, …) ele roda uma **camada universal**: os checks que valem em todo lado, casados de forma robusta sem parser — um `catch` vazio que engole o erro, `eval` dinâmico, um debugger esquecido no código, um `TODO` sem rastreio. Então `platao check app.ts` é real, não um no-op.
 
-Essa camada é de propósito rasa (um padrão não é uma AST — pega os cheiros universais, não os profundos). **Análise profunda por-linguagem via tree-sitter está planeada** — é a maior coisa do roadmap. Hoje: profundo em Python, amplo em toda parte.
+Essa camada de regex é de propósito rasa. Para análise **profunda** multi-linguagem há uma camada tree-sitter opcional:
+
+```bash
+pip install 'platao[deep]'   # ASTs reais para JS, TS, Go, Ruby, Java, Rust, PHP, C#, …
+```
+
+Com ela instalada, checks estruturais profundos rodam nessas linguagens também — a começar por `not_stub` (função de nome-de-ação com corpo genuinamente vazio, distinguida de uma declaração abstrata honesta). O core continua zero-dependência sem o extra; a camada poliglota de regex ainda cobre esses ficheiros. Mais checks profundos entram como queries tree-sitter ao lado do `not_stub`. Hoje: profundo em Python (sempre) e nas linguagens da camada deep (com o extra), amplo em toda parte.
 
 ## As perguntas
 

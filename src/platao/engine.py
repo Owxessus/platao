@@ -10,6 +10,7 @@ import contextlib
 import os
 from pathlib import Path
 
+from platao import treesitter
 from platao.checks import PROJECT_REGISTRY, REGISTRY
 from platao.context import FileContext
 from platao.finding import RANK, Finding, Severity
@@ -124,7 +125,9 @@ def analyze_paths(paths, *, root: Path | str | None = None,
                 continue
             out.extend(pcheck.fn(index))
 
-    # Language-agnostic breadth: run the universal patterns over non-Python source.
+    # Language-agnostic breadth: the shallow regex layer everywhere, plus the deep tree-sitter layer
+    # where the optional extra is installed.
+    use_treesitter = treesitter.available()
     for p in paths:
         for f in iter_ext_files(Path(p), POLYGLOT_EXTS):
             real = str(f.resolve())
@@ -134,6 +137,8 @@ def analyze_paths(paths, *, root: Path | str | None = None,
             display = _display_path(f, root_path)
             source = Path(f).read_text(encoding="utf-8", errors="ignore")
             findings = polyglot_scan(display, source)
+            if use_treesitter:
+                findings = findings + treesitter.scan(display, source)
             if enabled is not None:
                 findings = [fd for fd in findings if fd.check_id in enabled]
             out.extend(findings)

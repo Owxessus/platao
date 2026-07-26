@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install -e '.[mcp]' ruff pytest
+      - run: pip install -e '.[mcp,deep]' ruff pytest
       - name: Lint
         run: ruff check src tests
       - name: The proof gate — every check must pass its prove_effect + negative_control
