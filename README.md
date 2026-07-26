@@ -1,5 +1,7 @@
 # Platão
 
+**English · [Português](README.pt-BR.md)**
+
 **Your AI said "done." Platão asks the boring questions a skeptical senior would — before you trust it.**
 
 Platão is a deterministic completeness auditor for code (and for the code your AI agents write). It doesn't guess. It reads the actual syntax tree and answers questions like: *Is this wired, or is it dead code? Does this test prove behavior, or just that the file imports? Is "success" real, or is the pipeline structurally unable to fail?* — the exact ways a confident-but-wrong agent leaves work silently incomplete.
