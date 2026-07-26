@@ -36,6 +36,23 @@ def test_empty_method_in_class_is_caught():
     assert "not_stub" in ids("class C {\n  save() {}\n}", "app.ts")
 
 
+# ── declared no-op exemption (FP guard from gson @Override flush) ──────────────────
+
+def test_java_override_noop_is_exempt():
+    # `@Override public void flush() {}` — an intentional no-op impl of Flushable, not a placebo.
+    src = "class W {\n  @Override\n  public void flush() {}\n}"
+    assert "not_stub" not in ids(src, "W.java")
+
+
+def test_java_plain_empty_action_still_caught():  # prove_effect — exemption didn't blind it
+    assert "not_stub" in ids("class W {\n  public void deploy() {}\n}", "W.java")
+
+
+def test_ts_override_modifier_noop_is_exempt():
+    src = "class C extends B {\n  override save() {}\n}"
+    assert "not_stub" not in ids(src, "app.ts")
+
+
 # ── Go ────────────────────────────────────────────────────────────────────────────
 
 def test_empty_action_function_go_is_caught():

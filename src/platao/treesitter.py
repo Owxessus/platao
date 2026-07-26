@@ -70,6 +70,20 @@ def _is_action(name: str) -> bool:
     return any(tok.lower() in ACTION_VERBS for tok in re.findall(r"[A-Za-z][a-z]*", name))
 
 
+# An `@Override`/`@Overrides` annotation or an `abstract`/`override` modifier says the empty body is a
+# deliberate no-op implementation of a hook/interface method — not a forgotten placebo. Mirrors the
+# Python `not_stub` exemption (@abstractmethod/@override) across Java/C#/TS/Kotlin/Scala/Swift.
+_OVERRIDE_ANNOTATION = re.compile(r"@Overrides?\b")
+_OVERRIDE_MODIFIER = re.compile(r"\b(?:abstract|override)\b")
+
+
+def _is_declared_noop(node, body_node) -> bool:
+    """Is the method marked ``@Override`` / ``abstract`` / ``override`` (an intentional empty body)?"""
+    end = body_node.start_byte if body_node is not None else node.end_byte
+    signature = (node.text or b"")[: end - node.start_byte].decode("utf-8", "ignore")
+    return bool(_OVERRIDE_ANNOTATION.search(signature) or _OVERRIDE_MODIFIER.search(signature))
+
+
 def scan(path: str, source: str) -> list[Finding]:
     """Deep-scan one non-Python file for stub functions via tree-sitter. Empty if unsupported/unparseable."""
     lang = _EXT_TO_LANG.get(Path(path).suffix.lower())
@@ -97,7 +111,7 @@ def scan(path: str, source: str) -> list[Finding]:
                 body_node.named_child_count == 0 if body_node is not None
                 else none_body_empty
             )
-            if name and is_empty and _is_action(name):
+            if name and is_empty and _is_action(name) and not _is_declared_noop(node, body_node):
                 out.append(Finding(
                     "not_stub", "placebo", Severity.HIGH, path, node.start_point[0] + 1,
                     f"'{name}' has an empty body — the announced action does nothing",
