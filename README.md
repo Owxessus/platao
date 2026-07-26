@@ -125,7 +125,12 @@ You choose how it plugs in, and you can route by complexity — deterministic-on
 | **MCP server** ⭐ | `platao mcp` | Any agent (Claude Code, Cursor, …) calls it before saying "done" |
 | **SDK** | `import platao` | Your own tooling |
 
-The **MCP server** is the point. It exposes three tools — `platao_check_artifact`, `platao_sweep_repo`, and (if Basanos is installed) `basanos_audit_wiring` — so any MCP-capable agent verifies its own work before claiming completion, no editor integration required.
+The **MCP server** is the point. It exposes two tools — `platao_check` (audit a file or directory) and `platao_list_checks` — so any MCP-capable agent verifies its own work before claiming completion, no editor integration required. Install the extra and run it:
+
+```bash
+pip install 'platao[mcp]'
+platao mcp        # stdio server; point your agent at it
+```
 
 ---
 

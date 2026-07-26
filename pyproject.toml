@@ -22,12 +22,16 @@ classifiers = [
 ]
 dependencies = []   # zero runtime dependencies — stdlib only, fully understood
 
+[project.optional-dependencies]
+mcp = ["mcp>=1.2"]   # only the MCP server adapter needs this; the core stays zero-dep
+
 [project.urls]
 Homepage = "https://github.com/Owxessus/platao"
 Issues = "https://github.com/Owxessus/platao/issues"
 
 [project.scripts]
 platao = "platao.cli:main"
+platao-mcp = "platao.mcp_server:run"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/platao"]

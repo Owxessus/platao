@@ -21,10 +21,8 @@ from pathlib import Path
 from platao import __version__
 from platao.checks import PROJECT_REGISTRY, REGISTRY
 from platao.engine import analyze_paths
+from platao.finding import RANK
 from platao.report import render
-
-# Lower rank = more severe. A finding fails the run when its rank <= the threshold's rank.
-_RANK = {"high": 0, "medium": 1, "low": 2, "never": 99}
 
 
 def _audit(args: argparse.Namespace) -> int:
@@ -36,9 +34,21 @@ def _audit(args: argparse.Namespace) -> int:
     else:
         print(render(findings, color=False if args.no_color else None))
 
-    threshold = _RANK[args.fail_on]
-    worst = min((_RANK[f.severity.value] for f in findings), default=99)
-    return 1 if worst <= threshold else 0
+    worst = min((RANK[f.severity.value] for f in findings), default=99)
+    return 1 if worst <= RANK[args.fail_on] else 0
+
+
+def _run_mcp() -> int:
+    try:
+        from platao.mcp_server import run
+    except ImportError:
+        print(
+            "The MCP server needs the optional extra:\n    pip install 'platao[mcp]'",
+            file=sys.stderr,
+        )
+        return 2
+    run()
+    return 0
 
 
 def _list_checks() -> int:
@@ -92,10 +102,13 @@ def main(argv: list[str] | None = None) -> int:
     _add_audit_args(sub.add_parser("check", help="audit files or directories (detailed)"))
     _add_audit_args(sub.add_parser("sweep", help="audit a whole tree for placebo & unfinished work"))
     sub.add_parser("list-checks", help="show the registered checks")
+    sub.add_parser("mcp", help="run the MCP server (stdio) — exposes Platão to agents")
 
     args = parser.parse_args(argv)
     if args.cmd == "list-checks":
         return _list_checks()
+    if args.cmd == "mcp":
+        return _run_mcp()
     return _audit(args)
 
 

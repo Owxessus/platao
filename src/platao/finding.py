@@ -22,6 +22,10 @@ class Severity(str, Enum):
 # Sort order: most severe first, then by line. Kept here so ``Finding`` and the engine agree.
 _ORDER = {Severity.HIGH: 0, Severity.MEDIUM: 1, Severity.LOW: 2}
 
+# Severity threshold ranks (lower = more severe). ``"never"`` is the "nothing fails" sentinel.
+# Shared by the CLI exit code and the MCP payload so "does this pass?" means one thing everywhere.
+RANK: dict[str, int] = {"high": 0, "medium": 1, "low": 2, "never": 99}
+
 
 @dataclass(frozen=True, slots=True)
 class Finding:

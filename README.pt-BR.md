@@ -125,7 +125,12 @@ Você escolhe como ele se encaixa, e pode rotear por complexidade — só determ
 | **Servidor MCP** ⭐ | `platao mcp` | Qualquer agente (Claude Code, Cursor, …) chama antes de dizer "pronto" |
 | **SDK** | `import platao` | Seu próprio tooling |
 
-O **servidor MCP** é o ponto. Expõe três tools — `platao_check_artifact`, `platao_sweep_repo` e (se o Basanos estiver instalado) `basanos_audit_wiring` — para que qualquer agente com MCP verifique o próprio trabalho antes de alegar conclusão, sem precisar de integração com editor.
+O **servidor MCP** é o ponto. Expõe duas tools — `platao_check` (audita um ficheiro ou diretório) e `platao_list_checks` — para que qualquer agente com MCP verifique o próprio trabalho antes de alegar conclusão, sem precisar de integração com editor. Instale o extra e rode:
+
+```bash
+pip install 'platao[mcp]'
+platao mcp        # servidor stdio; aponte o seu agente para ele
+```
 
 ---
 

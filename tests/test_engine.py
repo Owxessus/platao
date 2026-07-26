@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from platao import Severity, analyze_paths, analyze_source
+from platao.engine import check_payload
 
 
 def test_parse_error_is_reported_not_raised():
@@ -36,6 +37,25 @@ def test_findings_carry_snippet_and_line():
     stub = next(f for f in findings if f.check_id == "not_stub")
     assert stub.line == 1
     assert "def execute" in stub.snippet
+
+
+def test_check_payload_flags_and_summarizes(tmp_path: Path):
+    (tmp_path / "m.py").write_text("def execute():\n    pass\n", encoding="utf-8")
+    payload = check_payload([tmp_path], root=tmp_path, fail_on="high")
+    assert payload["ok"] is False
+    assert payload["summary"]["high"] >= 1
+    assert any(f["check_id"] == "not_stub" for f in payload["findings"])
+
+
+def test_check_payload_ok_when_clean(tmp_path: Path):
+    (tmp_path / "m.py").write_text(
+        "def parse():\n    return compute()\nif __name__ == '__main__':\n    parse()\n",
+        encoding="utf-8",
+    )
+    payload = check_payload([tmp_path], root=tmp_path)
+    assert payload["ok"] is True
+    assert payload["summary"] == {"high": 0, "medium": 0, "low": 0}
+    assert payload["findings"] == []
 
 
 def test_platao_is_clean_on_its_own_source():
