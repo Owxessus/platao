@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from platao.finding import Severity
 from platao.polyglot import scan
 
 
@@ -13,6 +14,11 @@ def ids(source: str, path: str = "app.ts") -> set[str]:
 
 def test_empty_catch_is_caught():
     assert "swallowed_error" in ids("try { risky() } catch (e) {}")
+
+
+def test_empty_catch_is_medium():  # parity with Python `except Exception: pass` — advisory, not a hard fail
+    f = next(x for x in scan("app.ts", "try { risky() } catch (e) {}") if x.check_id == "swallowed_error")
+    assert f.severity is Severity.MEDIUM
 
 
 def test_empty_catch_multiline_is_caught():
@@ -63,3 +69,25 @@ def test_todo_with_issue_is_silent():  # negative control
 
 def test_todo_with_owner_is_silent():
     assert "debt_tracked" not in ids("// TODO(alice) fix later\nconst x = 1;")
+
+
+# ── comment / string masking (regex FP guards, from vite) ─────────────────────────
+
+def test_eval_in_line_comment_is_silent():  # vite: `// Most eval() calls are in this format`
+    assert "dangerous_dynamic" not in ids("// Most eval() calls are in this format\nconst x = 1")
+
+
+def test_eval_in_string_is_silent():
+    assert "dangerous_dynamic" not in ids("const s = 'eval(untrusted)'\n")
+
+
+def test_real_eval_still_caught_next_to_a_comment():  # prove_effect — masking didn't blind it
+    assert "dangerous_dynamic" in ids("// call eval below\nconst r = eval(userInput)\n")
+
+
+def test_empty_catch_in_block_comment_is_silent():
+    assert "swallowed_error" not in ids("/* try { x } catch (e) {} */\nconst y = 2")
+
+
+def test_debugger_in_string_is_silent():
+    assert "debug_leftover" not in ids("const help = 'type debugger to break'\n")
