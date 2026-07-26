@@ -107,4 +107,4 @@ def project_check(
 
 # Importing the submodules is what populates the registries (each decorator runs at import time).
 # Kept at the bottom so `register` / `project_check` are defined before the submodules import them.
-from platao.checks import hygiene, placebo, project, robustness  # noqa: E402,F401
+from platao.checks import hygiene, placebo, project, robustness, structure  # noqa: E402,F401
