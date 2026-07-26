@@ -40,6 +40,16 @@ def test_not_stub__honest_name_is_exempt():
     assert "not_stub" not in ids("def execute_noop():\n    pass\n")
 
 
+def test_not_stub__override_noop_is_exempt():  # FP guard — explicit override of a hook to a no-op
+    src = "from typing import override\nclass C:\n    @override\n    def persist(self):\n        pass\n"
+    assert "not_stub" not in ids(src)
+
+
+def test_not_stub__abstractmethod_pass_is_exempt():
+    src = "from abc import abstractmethod\nclass C:\n    @abstractmethod\n    def deploy(self):\n        pass\n"
+    assert "not_stub" not in ids(src)
+
+
 def test_not_stub__non_action_name_is_ignored():
     # `parse` doesn't promise a side effect, so a trivial body isn't a placebo.
     assert "not_stub" not in ids("def parse():\n    return True\n")

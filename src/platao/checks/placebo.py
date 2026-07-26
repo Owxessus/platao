@@ -47,8 +47,8 @@ def not_stub(ctx: FileContext) -> Iterable[tuple[int, str]]:
     for fn in _functions(ctx.tree):
         if not is_action_name(fn.name) or has_honest_stub_name(fn.name):
             continue
-        if has_decorator(fn, ("abstractmethod", "overload")):
-            continue
+        if has_decorator(fn, ("abstractmethod", "overload", "override", "overrides")):
+            continue  # abstract, typed-overload, or an explicit override — an intentional no-op, not a placebo
         body = body_without_docstring(fn)
         if not body:
             yield (fn.lineno, f"'{fn.name}' has only a docstring — the announced action is unimplemented")
