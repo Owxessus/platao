@@ -88,3 +88,36 @@ def test_dangerous_dynamic__literal_eval_is_silent():  # negative control — li
 def test_dangerous_dynamic__shell_false_is_silent():
     src = "import subprocess\ndef f(c):\n    subprocess.run(c, shell=False)\n"
     assert "dangerous_dynamic" not in ids(src)
+
+
+# ── mutable_default (brought from Athena's lynceus, calibrated: only if mutated) ────
+
+def test_mutable_default__list_mutated_is_caught():
+    src = "def add(item, acc=[]):\n    acc.append(item)\n    return acc\n"
+    assert "mutable_default" in ids(src)
+
+
+def test_mutable_default__dict_subscript_assign_is_caught():
+    src = "def put(k, v, cache={}):\n    cache[k] = v\n    return cache\n"
+    assert "mutable_default" in ids(src)
+
+
+def test_mutable_default__aug_assign_is_caught():
+    src = "def grow(x, acc=[]):\n    acc += [x]\n    return acc\n"
+    assert "mutable_default" in ids(src)
+
+
+def test_mutable_default__read_only_is_silent():  # negative control — the calibration
+    # A mutable default that is only READ is a smell, not the aliasing bug — don't cry wolf.
+    src = "def first(acc=[]):\n    return acc[0] if acc else None\n"
+    assert "mutable_default" not in ids(src)
+
+
+def test_mutable_default__none_default_is_silent():  # the correct idiom
+    src = "def add(item, acc=None):\n    acc = acc or []\n    acc.append(item)\n    return acc\n"
+    assert "mutable_default" not in ids(src)
+
+
+def test_mutable_default__immutable_default_is_silent():
+    src = "def f(x, n=0):\n    return x + n\n"
+    assert "mutable_default" not in ids(src)
