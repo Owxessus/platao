@@ -135,7 +135,7 @@ Você escolhe como ele se encaixa, e pode rotear por complexidade — só determ
 |---|---|---|
 | **CLI** | `platao check <path>` · `platao sweep .` | Manual, "minha IA terminou de verdade?" |
 | **Hook de pre-commit** | `platao install-hook` | Barrar um commit num concern crítico |
-| **Gate de CI (ratchet)** | GitHub Action | Falha o PR só se ele **introduzir** placebo/código-morto novo — nunca pune débito velho |
+| **Gate de CI** | GitHub Action (`uses: Owxessus/platao@main`) | Falha o build em achados ≥ `--fail-on` (um ratchet "só-novos" está planeado) |
 | **Servidor MCP** ⭐ | `platao mcp` | Qualquer agente (Claude Code, Cursor, …) chama antes de dizer "pronto" |
 | **SDK** | `import platao` | Seu próprio tooling |
 

@@ -135,7 +135,7 @@ You choose how it plugs in, and you can route by complexity — deterministic-on
 |---|---|---|
 | **CLI** | `platao check <path>` · `platao sweep .` | Manual, "did my AI actually finish?" |
 | **Pre-commit hook** | `platao install-hook` | Block a commit on a critical concern |
-| **CI gate (ratchet)** | GitHub Action | Fail the PR only if it **introduces** new placebo/dead code — never punishes old debt |
+| **CI gate** | GitHub Action (`uses: Owxessus/platao@main`) | Fail the build on findings at or above `--fail-on` (a new-only ratchet is planned) |
 | **MCP server** ⭐ | `platao mcp` | Any agent (Claude Code, Cursor, …) calls it before saying "done" |
 | **SDK** | `import platao` | Your own tooling |
 

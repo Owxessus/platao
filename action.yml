@@ -1,0 +1,32 @@
+name: "Platão"
+description: "Deterministic completeness auditor — fail the build on unfinished / placebo work."
+branding:
+  icon: "check-circle"
+  color: "purple"
+
+inputs:
+  paths:
+    description: "Files or directories to audit."
+    required: false
+    default: "."
+  fail-on:
+    description: "Minimum severity that fails the run (high | medium | low | never)."
+    required: false
+    default: "high"
+  deep:
+    description: "Install the optional tree-sitter deep layer (multi-language)."
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install Platão
+      shell: bash
+      run: pip install "platao${{ inputs.deep == 'true' && '[deep]' || '' }}"
+    - name: Audit
+      shell: bash
+      run: platao sweep ${{ inputs.paths }} --fail-on ${{ inputs.fail-on }} --no-color
