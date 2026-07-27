@@ -177,3 +177,13 @@ def test_dangling_import__unguarded_still_caught(tmp_path: Path):  # negative co
         "pkg/user.py": "from pkg.mod import ghost\n",  # no try/except → real broken import
     })
     assert "pkg/user.py" in findings_by_id(tmp_path).get("dangling_import", [])
+
+
+def test_dangling_import__stdlib_base_is_silent(tmp_path: Path):  # FP guard from pytorch
+    # A repo file named bisect.py in a no-__init__ dir must not shadow stdlib `bisect` into a false
+    # dangling for `from bisect import bisect_right`.
+    _pkg(tmp_path, {
+        "pkg/__init__.py": "",
+        "pkg/user.py": "from bisect import bisect_right\nfrom os.path import join\n",
+    })
+    assert "dangling_import" not in findings_by_id(tmp_path)

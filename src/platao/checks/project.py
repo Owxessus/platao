@@ -9,11 +9,18 @@ means island code, not "a library public surface".
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Iterable
 
 from platao.checks import project_check
 from platao.finding import Finding, Severity
 from platao.project import ProjectIndex
+
+# Standard-library top-level module names — `from bisect import …` is external even if a repo file
+# happens to be named bisect.py. Frozen at interpreter version; a superset across versions is fine.
+_STDLIB: frozenset[str] = frozenset(getattr(sys, "stdlib_module_names", frozenset())) | frozenset({
+    "bisect", "collections", "itertools", "functools", "typing", "os", "sys", "re", "json", "math",
+})
 
 # Files that are unconnected by design — never flag them as islands.
 _WIRED_EXEMPT_BASENAMES = frozenset({"__init__.py", "__main__.py", "conftest.py", "setup.py"})
@@ -68,6 +75,9 @@ def dangling_import(index: ProjectIndex) -> Iterable[Finding]:
         for line, base, name in m.from_imports:
             if line in m.guarded_from_lines:
                 continue  # `try: from x import y \n except ImportError:` — optional import, absence is intentional
+            if base and base.split(".")[0] in _STDLIB:
+                continue  # `from bisect import bisect_right` — stdlib is external; a same-named repo file
+                # (a `bisect.py` in a no-__init__ dir) must not shadow it into a false dangling
             target = index.modules.get(base)
             if target is None or target.has_star_import:
                 continue  # external, or we can't see everything it re-exports
