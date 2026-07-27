@@ -39,6 +39,7 @@ SECRET_ASSIGN = re.compile(
 
 
 _SCOPE_ID = re.compile(r"[a-z][a-z0-9]*(\.[a-z0-9]+)+")  # dotted lowercase: `variable.predefined`
+_PATTERN_CHARS = frozenset("[](){}\\|*")  # regex/glob metachars — never in a credential
 
 
 def looks_like_secret_value(value: str) -> bool:
@@ -54,5 +55,7 @@ def looks_like_secret_value(value: str) -> bool:
     """
     if _SCOPE_ID.fullmatch(value):
         return False
+    if any(c in _PATTERN_CHARS for c in value):
+        return False  # a regex/glob/format (`[a-z]+`, `{id}`) — a lexer pattern, not a credential
     return any(c.isdigit() or c.isupper() for c in value) \
         or any(not c.isalnum() and c != "_" for c in value)

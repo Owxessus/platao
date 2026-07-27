@@ -222,3 +222,10 @@ def test_hardcoded_secret__dotted_scope_is_not_a_secret():  # FP guard from vsco
     # but a placeholder with hyphens is still flagged (kept as MEDIUM elsewhere), and a real key too
     assert "hardcoded_secret" in ids('api_key = "your-token-example"\n')
     assert "hardcoded_secret" in ids('API_KEY = "sk-live-abcdef123456"\n')
+
+
+def test_hardcoded_secret__regex_pattern_is_not_a_secret():  # FP guard from textual (CSS tokenizer)
+    # TOKEN = "[a-zA-Z_][a-zA-Z0-9_-]*" is a lexer regex, not a credential.
+    assert "hardcoded_secret" not in ids('TOKEN = "[a-zA-Z_][a-zA-Z0-9_-]*"\n')
+    assert "hardcoded_secret" not in ids('KEY = "(?P<name>\\w+)"\n')
+    assert "hardcoded_secret" in ids('API_KEY = "sk-live-abcdef123456"\n')  # real key still caught
