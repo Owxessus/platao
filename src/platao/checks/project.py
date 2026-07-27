@@ -22,6 +22,12 @@ _STDLIB: frozenset[str] = frozenset(getattr(sys, "stdlib_module_names", frozense
     "bisect", "collections", "itertools", "functools", "typing", "os", "sys", "re", "json", "math",
 })
 
+
+def _is_generated_name(name: str) -> bool:
+    """A build-time artifact by universal convention: compiled pybind/SWIG (`_pywrap_*`) or protobuf
+    (`*_pb2` / `*_pb2_grpc`). These are absent from the source tree, so importing them isn't dangling."""
+    return name.startswith(("_pywrap", "pywrap_")) or name.endswith(("_pb2", "_pb2_grpc"))
+
 # Files that are unconnected by design — never flag them as islands.
 _WIRED_EXEMPT_BASENAMES = frozenset({"__init__.py", "__main__.py", "conftest.py", "setup.py"})
 
@@ -78,6 +84,9 @@ def dangling_import(index: ProjectIndex) -> Iterable[Finding]:
             if base and base.split(".")[0] in _STDLIB:
                 continue  # `from bisect import bisect_right` — stdlib is external; a same-named repo file
                 # (a `bisect.py` in a no-__init__ dir) must not shadow it into a false dangling
+            if _is_generated_name(name):
+                continue  # `_pywrap_*` (compiled pybind/SWIG) and `*_pb2` (protobuf) are build artifacts,
+                # generated at build time and absent from the source tree — not hand-written imports
             target = index.modules.get(base)
             if target is None or target.has_star_import:
                 continue  # external, or we can't see everything it re-exports

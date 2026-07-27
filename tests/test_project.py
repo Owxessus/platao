@@ -187,3 +187,14 @@ def test_dangling_import__stdlib_base_is_silent(tmp_path: Path):  # FP guard fro
         "pkg/user.py": "from bisect import bisect_right\nfrom os.path import join\n",
     })
     assert "dangling_import" not in findings_by_id(tmp_path)
+
+
+def test_dangling_import__generated_artifacts_are_silent(tmp_path: Path):  # FP guard from tensorflow
+    # `_pywrap_*` (compiled pybind/SWIG) and `*_pb2` (protobuf) are generated at build, absent from
+    # source — importing them is not a dangling import.
+    _pkg(tmp_path, {
+        "pkg/__init__.py": "",
+        "pkg/client/__init__.py": "",
+        "pkg/user.py": "from pkg.client import _pywrap_device_lib\nfrom pkg.client import model_pb2\n",
+    })
+    assert "dangling_import" not in findings_by_id(tmp_path)
