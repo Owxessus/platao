@@ -134,3 +134,14 @@ def test_dangling_import__if_guarded_and_unpacked_definition_is_silent(tmp_path:
         "pkg/user.py": "from pkg.compat import newapi, A, B\n",
     })
     assert "dangling_import" not in findings_by_id(tmp_path)
+
+
+def test_dangling_import__with_as_binding_is_silent(tmp_path: Path):  # FP guard from gradio
+    # `with gr.Blocks() as demo:` at module scope binds `demo` as a module attribute — importing it
+    # is valid. Gradio/ML modules use this idiom; missing it was a false dangling_import.
+    _pkg(tmp_path, {
+        "pkg/__init__.py": "",
+        "pkg/dash.py": "import cm\nwith cm.ctx() as demo:\n    pass\n",
+        "pkg/user.py": "from pkg.dash import demo\n",
+    })
+    assert "dangling_import" not in findings_by_id(tmp_path)

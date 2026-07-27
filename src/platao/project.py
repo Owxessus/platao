@@ -179,6 +179,9 @@ def _collect_module_binds(body: list[ast.stmt], into: set[str]) -> None:
             _collect_module_binds(node.body, into)
             _collect_module_binds(node.orelse, into)
         elif isinstance(node, ast.With | ast.AsyncWith):
+            for item in node.items:  # `with gr.Blocks() as demo:` binds `demo` at module scope
+                if item.optional_vars is not None:
+                    _add_assign_target(item.optional_vars, into)
             _collect_module_binds(node.body, into)
 
 
