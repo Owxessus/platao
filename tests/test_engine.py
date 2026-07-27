@@ -78,3 +78,13 @@ def test_platao_is_clean_on_its_own_source():
     assert findings == [], "Platão flags its own code:\n" + "\n".join(
         f"  {f.path}:{f.line} [{f.check_id}] {f.message}" for f in findings
     )
+
+
+def test_minified_assets_are_skipped(tmp_path: Path):  # Odysseus shipped static/lib/*.min.js
+    # A minified/bundled asset is vendored output, not source — its eval()/new Function is not yours.
+    from platao.engine import iter_ext_files
+    (tmp_path / "app.js").write_text("try { x() } catch {}\n", encoding="utf-8")
+    lib = tmp_path / "static" / "lib"; lib.mkdir(parents=True)
+    (lib / "vendor.umd.min.js").write_text("eval('x')\n", encoding="utf-8")
+    names = {p.name for p in iter_ext_files(tmp_path, frozenset({".js"}))}
+    assert "app.js" in names and "vendor.umd.min.js" not in names

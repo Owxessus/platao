@@ -12,15 +12,33 @@ import ast
 from dataclasses import dataclass
 
 
-def _looks_like_test(path: str) -> bool:
-    """A path is a test file if it lives under a ``tests`` dir or is named ``test_*`` / ``*_test.py``.
+# Directory names that mark a test tree, and filename markers that mark a test/fixture file. The
+# filename markers cover conventions beyond pytest — JS/TS suites and helpers (`foo.suite.ts`,
+# `x-test-helpers.ts`, `contract-suites.ts`), Jest/Vitest (`*.test.*`, `*.spec.*`), e2e and fixtures.
+# Real competitor codebases (OpenClaw, Odysseus) name test fixtures this way; without them a hardcoded
+# test token reads as a HIGH production secret. See patterns.py for the value-side calibration.
+_TEST_DIRS = frozenset({"tests", "test", "__tests__", "fixtures", "__fixtures__", "e2e", "testdata"})
+_TEST_BASE_MARKERS = (
+    ".test.", ".spec.", ".e2e.", ".suite.", "-suite.", ".fixture", "-test-helpers", "-test-utils",
+    "-test-harness", "test-helpers", "test-utils", "test-harness", "contract-suites", "-fixtures.",
+)
 
-    Test-only checks (``assert_selfreport``, ``no_negative_control``) run only when this is true, so
-    the rule is deliberately conservative and path-based — the same convention pytest uses.
+
+def _looks_like_test(path: str) -> bool:
+    """True if ``path`` is a test or fixture file — by test dir, ``test_*``/``*_test`` name, or a
+    JS/TS test-file convention (``*.test.*``, ``*.suite.ts``, ``*-test-helpers.ts``, …).
+
+    Deliberately path-based (no parsing) so it works for any language. Broadened beyond pytest because
+    test-only checks run *only* when this is true, and production-only checks (secrets) downgrade when
+    it is — a fixture's fake credential must not read as a HIGH production leak.
     """
     parts = path.replace("\\", "/").lower().split("/")
     base = parts[-1]
-    return "tests" in parts or base.startswith("test_") or base.endswith("_test.py")
+    if _TEST_DIRS & set(parts[:-1]):
+        return True
+    if base.startswith("test_") or base.endswith(("_test.py", "_test.go", "_test.rb")):
+        return True
+    return any(mk in base for mk in _TEST_BASE_MARKERS)
 
 
 @dataclass(slots=True)

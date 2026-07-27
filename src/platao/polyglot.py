@@ -17,6 +17,7 @@ import re
 from dataclasses import dataclass
 
 from platao.finding import Finding, Severity
+from platao.context import _looks_like_test
 from platao.patterns import PLACEHOLDER, SECRET_ASSIGN, looks_like_secret_value
 
 # Non-Python code files this layer scans. Python goes through the deep AST checks, never here.
@@ -155,13 +156,15 @@ def scan(path: str, source: str) -> list[Finding]:
     # in the finding — the snippet is redacted to the name only. A placeholder value (test/example/…)
     # downgrades to MEDIUM (likely a fixture) rather than being silenced.
     secret = _BY_ID["hardcoded_secret"]
+    is_test = _looks_like_test(path)
     for m in SECRET_ASSIGN.finditer(source):
         name, value = m.group(1), m.group(3)
         if not looks_like_secret_value(value):
             continue  # a plain lowercase word is a label/enum, not a credential
         placeholder = bool(PLACEHOLDER.search(value))
-        sev = Severity.MEDIUM if placeholder else Severity.HIGH
-        hint = " (looks like a placeholder/fixture)" if placeholder else ""
+        sev = Severity.MEDIUM if (placeholder or is_test) else Severity.HIGH
+        hint = (" (looks like a placeholder/fixture)" if placeholder
+                else " (in a test file — likely a fixture)" if is_test else "")
         out.append(_finding(
             secret, path, source, m.start(), severity=sev,
             message=f"'{name}' is assigned a hardcoded secret{hint} — move it to config/env, never in source",

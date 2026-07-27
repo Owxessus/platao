@@ -206,3 +206,10 @@ def test_fail_closed__value_resolver_returning_true_is_silent():  # FP guard (he
     src = ("def _resolve_aux_verify(url):\n    try:\n        return resolve_tls(url)\n"
            "    except Exception:\n        return True\n")
     assert "fail_closed" not in ids(src)
+
+
+def test_hardcoded_secret__in_test_file_is_medium_not_high():
+    # A fake credential in a test fixture is not a production leak (Odysseus shipped 5 in tests/).
+    src = 'password = "hunter2-supersecret-value"\n'
+    assert _sev(src, "hardcoded_secret", path="tests/test_login.py") is Severity.MEDIUM
+    assert _sev(src, "hardcoded_secret", path="src/app.py") is Severity.HIGH  # prove_effect: real source HIGH

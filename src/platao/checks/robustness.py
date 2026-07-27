@@ -234,8 +234,9 @@ def hardcoded_secret(ctx: FileContext) -> Iterable[Finding]:
             if not SECRET_NAME.search(name):
                 continue
             placeholder = bool(PLACEHOLDER.search(value.value))
-            severity = Severity.MEDIUM if placeholder else Severity.HIGH
-            hint = " (looks like a placeholder/fixture)" if placeholder else ""
+            severity = Severity.MEDIUM if (placeholder or ctx.is_test) else Severity.HIGH
+            hint = (" (looks like a placeholder/fixture)" if placeholder
+                    else " (in a test file — likely a fixture)" if ctx.is_test else "")
             yield Finding(
                 "hardcoded_secret", "security", severity, ctx.path, node.lineno,
                 f"'{name}' is assigned a hardcoded secret{hint} — move it to config/env, never in source",

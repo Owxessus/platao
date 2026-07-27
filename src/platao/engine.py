@@ -73,8 +73,19 @@ def iter_ext_files(root: Path | str, exts: frozenset[str]):
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
         for name in filenames:
-            if Path(name).suffix in exts:
+            if Path(name).suffix in exts and not _is_minified(name):
                 yield Path(dirpath) / name
+
+
+def _is_minified(name: str) -> bool:
+    """A bundled/minified asset (``*.min.js``, ``*.bundle.js``) — vendored output, never source.
+
+    Skipped while walking (a run pointed straight at one still analyses it, like ``_SKIP_DIRS``).
+    Odysseus shipped ``static/lib/*.min.js`` — scanning them produced false ``eval``/``new Function``
+    findings for third-party libraries the project never wrote.
+    """
+    low = name.lower()
+    return ".min." in low or low.endswith((".bundle.js", ".bundle.mjs", ".bundle.css"))
 
 
 def iter_python_files(root: Path | str):

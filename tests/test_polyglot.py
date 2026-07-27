@@ -96,7 +96,7 @@ def test_debugger_in_string_is_silent():
 # ── hardcoded_secret (polyglot; value NEVER emitted) ──────────────────────────────
 
 def test_secret_js_assignment_is_caught():
-    assert "hardcoded_secret" in ids('const apiKey = "sk-live-abcdef123456";\n')
+    assert "hardcoded_secret" in ids('const apiKey = "Xk9fQ2mLp7Zt4Rw8Vn";\n')
 
 
 def test_secret_value_is_never_emitted():
@@ -113,3 +113,22 @@ def test_secret_placeholder_is_medium():
 
 def test_secret_env_lookup_is_silent():
     assert "hardcoded_secret" not in ids('const apiKey = process.env.API_KEY;\n')
+
+
+# ── secrets in test-convention files downgrade (FP guard from OpenClaw) ─────────────
+
+def test_secret_in_test_convention_file_is_medium():
+    # OpenClaw names fixtures `*.suite.ts` / `*-test-helpers.ts` / `*-test-utils.ts` /
+    # `contract-suites.ts` — a fake token there is a fixture, not a production leak → MEDIUM.
+    from platao.finding import Severity as S
+    for p in ("gateway/server.auth.suite.ts", "hooks-test-helpers.ts",
+              "tts-contract-suites.ts", "loader.base.test-utils.ts"):
+        fs = [f for f in scan(p, 'const token = "Xk9fQ2mLp7Zt4Rw8Vn";\n') if f.check_id == "hardcoded_secret"]
+        assert fs and fs[0].severity is S.MEDIUM, p
+
+
+def test_secret_in_real_source_stays_high():  # prove_effect: the downgrade is test-only
+    from platao.finding import Severity as S
+    fs = [f for f in scan("src/gateway/server.ts", 'const token = "Xk9fQ2mLp7Zt4Rw8Vn";\n')
+          if f.check_id == "hardcoded_secret"]
+    assert fs and fs[0].severity is S.HIGH
