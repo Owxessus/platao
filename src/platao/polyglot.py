@@ -80,11 +80,17 @@ def _mask_noise(src: str) -> str:
         nxt = src[i + 1] if i + 1 < n else ""
         if state is None:
             if c == "/" and nxt == "/":
-                state, out[i], out[i + 1] = "line", " ", " "; i += 2; continue
+                state, out[i], out[i + 1] = "line", " ", " "
+                i += 2
+                continue
             if c == "/" and nxt == "*":
-                state, out[i], out[i + 1] = "block", " ", " "; i += 2; continue
+                state, out[i], out[i + 1] = "block", " ", " "
+                i += 2
+                continue
             if c in ("'", '"'):
-                state, out[i] = c, " "; i += 1; continue
+                state, out[i] = c, " "
+                i += 1
+                continue
             i += 1
         elif state == "line":
             if c == "\n":
@@ -94,7 +100,9 @@ def _mask_noise(src: str) -> str:
             i += 1
         elif state == "block":
             if c == "*" and nxt == "/":
-                out[i], out[i + 1], state = " ", " ", None; i += 2; continue
+                out[i], out[i + 1], state = " ", " ", None
+                i += 2
+                continue
             if c != "\n":
                 out[i] = " "
             i += 1
@@ -103,7 +111,8 @@ def _mask_noise(src: str) -> str:
                 out[i] = " "
                 if i + 1 < n and src[i + 1] != "\n":
                     out[i + 1] = " "
-                i += 2; continue
+                i += 2
+                continue
             if c == state:
                 out[i], state = " ", None
             elif c != "\n":

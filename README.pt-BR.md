@@ -10,7 +10,7 @@ Platão é um auditor de completude determinístico para código (e para o códi
 
 Roda como CLI, hook de pre-commit, gate de CI e — o ponto — um **servidor MCP** que qualquer agente de código chama antes de dizer "terminei".
 
-> **Dois produtos, uma filosofia.** O Platão tem um irmão, [Basanos](https://github.com/Owxessus/basanos) — a pedra-de-toque da fiação de UI (este botão chama um handler que existe de verdade e faz algo?). Eles são publicados separados e rodam sozinhos. Instale os dois e o Platão puxa o Basanos como um dos seus olhos. Veja [Rodando com o Basanos](#rodando-com-o-basanos).
+> **Um de três, uma filosofia.** O Platão tem dois irmãos: **[Basanos](https://github.com/Owxessus/basanos)** — a pedra-de-toque da fiação de UI (este botão chama um handler que existe e faz algo?) — e **[Socrates](https://github.com/Owxessus/socrates)** — o refutador (os teus testes pegam bug de verdade, e a tua API pública tem prova?). Cada um é publicado separado e roda sozinho. **Instale qualquer um ao lado do Platão e ele os puxa como olhos extras** — o Basanos responde `ui_wired`, o Socrates responde `capabilities_proven` — no mesmo relatório. Veja [Rodando com os irmãos](#rodando-com-os-irmãos).
 
 ---
 
@@ -114,8 +114,9 @@ Toda pergunta é `CODE` (determinística, grátis) ou `JUDGMENT` (precisa de LLM
 - `typed_documented` — funções públicas têm tipos + docstring/JSDoc?
 - `not_god_function` — função abaixo de ~120 linhas / um estágio lógico?
 
-**Fiação (delegada ao Basanos, se instalado)**
-- `ui_wired` — os controles deste painel chamam handlers que existem e fazem algo?
+**Delegada a um irmão, se instalado**
+- `ui_wired` — os controles deste painel chamam handlers que existem e fazem algo? (**Basanos**)
+- `capabilities_proven` — toda capacidade pública é nomeada por pelo menos um teste? (**Socrates**)
 
 ### Juízo (JUDGMENT — BYO-LLM, opt-in)
 
@@ -229,13 +230,24 @@ questions:
 
 ---
 
-## Rodando com o Basanos
+## Rodando com os irmãos
 
-[Basanos](https://github.com/Owxessus/basanos) é um produto separado. Se estiver instalado, a pergunta `ui_wired` do Platão acende e delega a ele automaticamente — sem config. Se não estiver, a pergunta some sem barulho (feature-detect, nunca um erro). É o modelo "dois produtos, rodam juntos": cada um sozinho; instalados juntos, o Platão é o interrogador e o Basanos é o seu olho de fiação.
+O Platão é o interrogador; os irmãos são olhos extras que ele ganha quando estão presentes. Os dois são **feature-detect e silenciosos quando ausentes** — sem config, e um irmão que falta nunca dá erro — e os dois ficam dentro da promessa do Platão: leem o teu código, nunca *rodam* o teu app.
 
-```bash
-npm install -g platao basanos    # os dois → o Platão puxa o Basanos como olho
-```
+- **[Socrates](https://github.com/Owxessus/socrates)** (Python — importado in-process). Num `sweep` do repo inteiro, a pergunta `capabilities_proven` acende e pergunta ao Socrates: quais capacidades públicas nenhum teste nomeia? Só a capability-proof *estática* dele é delegada — o mutation testing dinâmico (`socrates mutate`) você roda explicitamente, então o Platão continua "nunca executa o teu código".
+
+  ```bash
+  pipx install platao          # depois, no mesmo ambiente:
+  pip install socrates-oss     # o sweep passa a incluir capabilities_proven
+  ```
+
+- **[Basanos](https://github.com/Owxessus/basanos)** (um CLI Node — chamado por subprocess). Se o `basanos` estiver no PATH, a pergunta `ui_wired` delega a ele e dobra os controles de UI mortos/stub no relatório.
+
+  ```bash
+  npm install -g basanos       # o sweep passa a incluir ui_wired
+  ```
+
+Cada um sozinho; instalados juntos, o Platão reúne as três respostas numa passada só.
 
 ---
 

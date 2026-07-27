@@ -34,5 +34,5 @@ PLACEHOLDER = re.compile(
 SECRET_ASSIGN = re.compile(
     r"""(?i)\b(password|passwd|secret|api[_-]?key|apikey|access[_-]?key|auth[_-]?token|"""
     r"""access[_-]?token|refresh[_-]?token|token|private[_-]?key|client[_-]?secret|credential)\b"""
-    r"""\s*[:=]\s*(['"])([^'"\s]{%d,})\2""" % MIN_SECRET_LEN
+    rf"""\s*[:=]\s*(['"])([^'"\s]{{{MIN_SECRET_LEN},}})\2"""
 )

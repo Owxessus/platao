@@ -10,7 +10,7 @@ Platão is a deterministic completeness auditor for code (and for the code your 
 
 It runs as a CLI, a pre-commit hook, a CI gate, and — the point — an **MCP server** that any coding agent calls before it says "finished."
 
-> **Two products, one philosophy.** Platão has a sibling, [Basanos](https://github.com/Owxessus/basanos) — the touchstone for UI wiring (does this button call a handler that actually exists and does something?). They ship separately and run standalone. Install both and Platão will pull Basanos in as one of its eyes. See [Running with Basanos](#running-with-basanos).
+> **One of three, one philosophy.** Platão has two siblings: **[Basanos](https://github.com/Owxessus/basanos)** — the touchstone for UI wiring (does this button call a handler that exists and does something?) — and **[Socrates](https://github.com/Owxessus/socrates)** — the cross-examiner (do your tests actually catch bugs, and does your public API have proof?). Each ships separately and runs standalone. **Install any of them alongside Platão and it pulls them in as extra eyes** — Basanos answers `ui_wired`, Socrates answers `capabilities_proven` — folded into the same report. See [Running with its siblings](#running-with-its-siblings).
 
 ---
 
@@ -114,8 +114,9 @@ Every question is either `CODE` (deterministic, free) or `JUDGMENT` (needs an LL
 - `typed_documented` — public functions have types + docstring/JSDoc?
 - `not_god_function` — function under ~120 lines / one logical stage?
 
-**Wiring (delegated to Basanos, if installed)**
-- `ui_wired` — do this panel's controls call handlers that exist and do something?
+**Delegated to a sibling, if installed**
+- `ui_wired` — do this panel's controls call handlers that exist and do something? (**Basanos**)
+- `capabilities_proven` — is every public capability named by at least one test? (**Socrates**)
 
 ### Judgment (JUDGMENT — BYO-LLM, opt-in)
 
@@ -229,13 +230,24 @@ questions:
 
 ---
 
-## Running with Basanos
+## Running with its siblings
 
-[Basanos](https://github.com/Owxessus/basanos) is a separate product. If it's installed, Platão's `ui_wired` question lights up and delegates to it automatically — no config. If it isn't, the question quietly disappears (feature-detected, never an error). That's the "two products, run together" model: each stands alone; installed together, Platão is the interrogator and Basanos is its wiring eye.
+Platão is the interrogator; its siblings are extra eyes it grows when they're present. Both are **feature-detected and silent when absent** — no config, and a missing sibling never errors — and both stay within Platão's promise: they read your code, they never *run* your app.
 
-```bash
-npm install -g platao basanos    # both → Platão pulls Basanos as an eye
-```
+- **[Socrates](https://github.com/Owxessus/socrates)** (Python — imported in-process). On a whole-repo `sweep`, Platão's `capabilities_proven` question lights up and asks Socrates: which public capabilities does no test name? Only Socrates' *static* capability-proof is delegated — its dynamic mutation testing (`socrates mutate`) you run explicitly, so Platão stays "never executes your code".
+
+  ```bash
+  pipx install platao          # then, in the same environment:
+  pip install socrates-oss     # sweep now includes capabilities_proven
+  ```
+
+- **[Basanos](https://github.com/Owxessus/basanos)** (a Node CLI — shelled out to). If `basanos` is on your PATH, Platão's `ui_wired` question delegates to it and folds dead/stub UI controls into the report.
+
+  ```bash
+  npm install -g basanos       # sweep now includes ui_wired
+  ```
+
+Each stands alone; installed together, Platão gathers all three answers into one pass.
 
 ---
 
