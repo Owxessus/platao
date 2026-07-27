@@ -66,9 +66,13 @@ def dangling_import(index: ProjectIndex) -> Iterable[Finding]:
     """
     for m in index.modules.values():
         for line, base, name in m.from_imports:
+            if line in m.guarded_from_lines:
+                continue  # `try: from x import y \n except ImportError:` — optional import, absence is intentional
             target = index.modules.get(base)
             if target is None or target.has_star_import:
                 continue  # external, or we can't see everything it re-exports
+            if "__getattr__" in target.bound_names:
+                continue  # PEP 562: a module-level __getattr__ resolves any name lazily (jax shims)
             if name in _IMPLICIT_MODULE_DUNDERS:
                 continue  # `from pkg import __doc__` — the interpreter provides it, not the source
             if name in target.bound_names:

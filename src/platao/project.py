@@ -75,6 +75,7 @@ class ModuleInfo:
     from_imports: list[tuple[int, str, str]] = field(default_factory=list)  # (line, base_module, name)
     bound_names: set[str] = field(default_factory=set)      # top-level names this module exposes
     has_star_import: bool = False
+    guarded_from_lines: set[int] = field(default_factory=set)  # `from … import` lines under try/except-ImportError
     lines: list[str] = field(default_factory=list)
 
     def snippet(self, line: int) -> str:
@@ -142,7 +143,38 @@ def _index_one(path: Path, display: str, tree: ast.Module, source: str) -> Modul
                 info.bound_names.add(alias.asname or alias.name)
     # Top-level definitions expose names too (for `dangling_import` re-export resolution).
     _collect_module_binds(tree.body, info.bound_names)
+    _collect_guarded_from_lines(tree, info.guarded_from_lines)
     return info
+
+
+_OPTIONAL_IMPORT_EXC = frozenset({
+    "ImportError", "ModuleNotFoundError", "AttributeError", "Exception", "BaseException",
+})
+
+
+def _catches_import_error(handlers: list[ast.ExceptHandler]) -> bool:
+    """True if any handler catches an import-ish error (or is a bare ``except:``)."""
+    for h in handlers:
+        if h.type is None:
+            return True  # bare except swallows ImportError too
+        names = h.type.elts if isinstance(h.type, ast.Tuple) else [h.type]
+        if any(isinstance(n, ast.Name) and n.id in _OPTIONAL_IMPORT_EXC for n in names):
+            return True
+    return False
+
+
+def _collect_guarded_from_lines(tree: ast.Module, into: set[int]) -> None:
+    """Record the lines of ``from … import …`` wrapped in a ``try`` that catches an import error.
+
+    ``try: from x import y \n except ImportError: y = None`` is the universal optional-import idiom —
+    the name is *allowed* to be absent, so a dangling name there is intentional, not a broken import.
+    """
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Try) and _catches_import_error(node.handlers):
+            for stmt in node.body:
+                for sub in ast.walk(stmt):
+                    if isinstance(sub, ast.ImportFrom):
+                        into.add(sub.lineno)
 
 
 def _add_assign_target(target: ast.expr, into: set[str]) -> None:

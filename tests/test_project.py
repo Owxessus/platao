@@ -145,3 +145,35 @@ def test_dangling_import__with_as_binding_is_silent(tmp_path: Path):  # FP guard
         "pkg/user.py": "from pkg.dash import demo\n",
     })
     assert "dangling_import" not in findings_by_id(tmp_path)
+
+
+def test_dangling_import__module_getattr_suppresses(tmp_path: Path):  # FP guard from jax
+    # A module-level __getattr__ (PEP 562) can resolve any name lazily — jax/core.py uses the
+    # assignment form for deprecation shims. Both `def` and `=` forms land in bound_names.
+    for form in ("def __getattr__(n):\n    raise AttributeError(n)\n", "__getattr__ = _mk()\n"):
+        _pkg(tmp_path, {
+            "pkg/__init__.py": "",
+            "pkg/shim.py": form,
+            "pkg/user.py": "from pkg.shim import AnythingGoes\n",
+        })
+        assert "dangling_import" not in findings_by_id(tmp_path), form
+
+
+def test_dangling_import__try_except_guarded_is_silent(tmp_path: Path):  # FP guard from jax
+    # `try: from x import y \n except ImportError:` is the optional-import idiom — the name is allowed
+    # to be absent (jax does this for a not-yet-existing `repro` module). Not a broken import.
+    _pkg(tmp_path, {
+        "pkg/__init__.py": "",
+        "pkg/mod.py": "def real():\n    return 1\n",
+        "pkg/user.py": "try:\n    from pkg.mod import ghost\nexcept ImportError:\n    ghost = None\n",
+    })
+    assert "dangling_import" not in findings_by_id(tmp_path)
+
+
+def test_dangling_import__unguarded_still_caught(tmp_path: Path):  # negative control
+    _pkg(tmp_path, {
+        "pkg/__init__.py": "",
+        "pkg/mod.py": "def real():\n    return 1\n",
+        "pkg/user.py": "from pkg.mod import ghost\n",  # no try/except → real broken import
+    })
+    assert "pkg/user.py" in findings_by_id(tmp_path).get("dangling_import", [])
