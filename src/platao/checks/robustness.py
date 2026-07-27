@@ -9,9 +9,8 @@ mutable default argument that the function then mutates (state that silently lea
 from __future__ import annotations
 
 import ast
-from collections.abc import Iterable
-
 import re
+from collections.abc import Iterable
 
 from platao.checks import register
 from platao.checks._ast import (
