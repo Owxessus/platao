@@ -52,7 +52,13 @@ def not_stub(ctx: FileContext) -> Iterable[tuple[int, str]]:
     Honest non-doers are exempt: ``...`` and ``raise NotImplementedError`` say "not implemented
     here", and names like ``noop``/``stub``/``fake`` announce it. What we flag is the function that
     *claims* to act and quietly doesn't: ``pass``, a bare ``return``, or ``return True``.
+
+    Skipped in test files: a fake/double there (``class FakeCol: def delete(self): pass``) is a no-op
+    on purpose, and flagging it just cries wolf on a solo dev's test suite. Production stubs are the
+    target.
     """
+    if ctx.is_test:
+        return
     for fn in _functions(ctx.tree):
         if not is_action_name(fn.name) or has_honest_stub_name(fn.name):
             continue
@@ -83,8 +89,11 @@ def always_succeeds(ctx: FileContext) -> Iterable[tuple[int, str]]:
     If a function returns a success value but contains no ``raise``, no failure return, and no
     branch (``if``/``try``/``for``/``while``/``match``), then every path reports success — the
     definition of a test that will always pass and a pipeline that can never surface an error.
-    Trivial bodies are left to ``not_stub``; this looks only at functions with real length.
+    Trivial bodies are left to ``not_stub``; this looks only at functions with real length. Skipped in
+    test files (a fixture that just returns a canned value isn't a can't-fail pipeline).
     """
+    if ctx.is_test:
+        return
     for fn in _functions(ctx.tree):
         if not is_action_name(fn.name):
             continue
