@@ -198,3 +198,16 @@ def test_dangling_import__generated_artifacts_are_silent(tmp_path: Path):  # FP 
         "pkg/user.py": "from pkg.client import _pywrap_device_lib\nfrom pkg.client import model_pb2\n",
     })
     assert "dangling_import" not in findings_by_id(tmp_path)
+
+
+def test_dangling_import__cython_extension_submodule_is_silent(tmp_path: Path):  # FP guard from pandas
+    # `from pkg._libs import lib` where lib is a Cython module (lib.pyx / lib.pyi shipped, compiled to
+    # .so at build) — a valid compiled submodule, not a dangling import.
+    _pkg(tmp_path, {
+        "pkg/__init__.py": "",
+        "pkg/_libs/__init__.py": "",
+        "pkg/_libs/lib.pyx": "# cython source\n",
+        "pkg/_libs/lib.pyi": "def f() -> int: ...\n",
+        "pkg/user.py": "from pkg._libs import lib\n",
+    })
+    assert "dangling_import" not in findings_by_id(tmp_path)

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Iterable
+from pathlib import Path
 
 from platao.checks import project_check
 from platao.finding import Finding, Severity
@@ -27,6 +28,18 @@ def _is_generated_name(name: str) -> bool:
     """A build-time artifact by universal convention: compiled pybind/SWIG (`_pywrap_*`) or protobuf
     (`*_pb2` / `*_pb2_grpc`). These are absent from the source tree, so importing them isn't dangling."""
     return name.startswith(("_pywrap", "pywrap_")) or name.endswith(("_pb2", "_pb2_grpc"))
+
+
+def _has_compiled_submodule(pkg_dir: Path, name: str) -> bool:
+    """True if ``name`` is a Cython/C-extension submodule of ``pkg_dir`` — a ``name.pyx`` (Cython
+    source), ``name.pyi`` (its type stub), or a compiled ``.pyd``/``.so`` sits beside the package.
+
+    pandas/numpy/scipy/scikit-learn import compiled modules (``from pandas._libs import lib``) that are
+    built at install and never exist as ``.py`` — so the source tree ships ``lib.pyx``/``lib.pyi``.
+    """
+    if any((pkg_dir / f"{name}{suf}").exists() for suf in (".pyx", ".pyi", ".pyd", ".pyx.tp")):
+        return True  # .pyx.tp = Tempita-templated Cython (scikit-learn), generates .pyx at build
+    return (pkg_dir / f"{name}.so").exists() or next(pkg_dir.glob(f"{name}.*.so"), None) is not None
 
 # Files that are unconnected by design — never flag them as islands.
 _WIRED_EXEMPT_BASENAMES = frozenset({"__init__.py", "__main__.py", "conftest.py", "setup.py"})
@@ -98,6 +111,8 @@ def dangling_import(index: ProjectIndex) -> Iterable[Finding]:
                 continue
             if f"{base}.{name}" in index.modules:
                 continue  # it's a submodule, imported as a name
+            if _has_compiled_submodule(target.path.parent, name):
+                continue  # a Cython/C-extension submodule (name.pyx/.pyi) — built, not a .py in source
             yield index.finding(
                 m, "dangling_import", "correctness", Severity.HIGH, line,
                 f"`from {base} import {name}` — '{name}' is not defined or re-exported in "
