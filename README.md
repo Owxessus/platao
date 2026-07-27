@@ -1,6 +1,8 @@
 # Platão
 
-<img src="assets/athena-coin.jpg" align="right" width="108" alt="Athena — the sovereign OS Platão was extracted from">
+<img src="assets/banner.png" alt="Platão — extracted from Athena, the sovereign agentic OS">
+
+[![ci](https://github.com/Owxessus/platao/actions/workflows/ci.yml/badge.svg)](https://github.com/Owxessus/platao/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 
 **English · [Português](README.pt-BR.md)**
 
@@ -274,6 +276,12 @@ CI runs each check's proof on every PR. No proof, no merge. This isn't bureaucra
 
 ---
 
+## Proven, not asserted
+
+Anti-placebo is a rule this project holds *itself* to. **Every check ships with a `prove_effect` + `negative_control` pair** — it must catch the real defect *and* stay silent on the honest twin, or it doesn't ship (CI enforces it). And it passes its own audit — Platão runs **clean under its own `platao sweep`** — the auditor survives its own audit.
+
+Then it was hardened on **real codebases, 10k–90k★**, across every tier — big-tech, frameworks, AI-agent projects, solo work. On that gauntlet it found real defects the test suites missed — dozens of module-level broken imports that a 67k★ project's test suite never caught (latent `ImportError`s on real code paths) — and, the harder half, it **stayed quiet where the code was good.** Every false-positive pattern it tripped on became a fix with a regression test: **15 classes of false positive eliminated** on real code. A low false-positive rate isn't a promise here — it was *built*.
+
 ## Where this came from
 
 Platão is one entity extracted from **Athena**, a sovereign agentic OS built on a single discipline: **anti-placebo, secure, deterministic, governed, auditable.** In Athena, "did you actually finish?" isn't a linter you run — it's a reflex the system performs on itself, every time it builds something, wired to dozens of complementary entities that heal, gate, remember, and prove.
@@ -285,6 +293,10 @@ The rest — the judgment orchestration, the security gates, the memory, the sel
 For now: this stands on its own. Use it.
 
 ---
+
+Athena is that discipline as a *system*, not a tool: every action passes a **decision gate** before it runs, a **sandbox** that can roll back before anything destructive, and a **tamper-evident ledger** that records what happened; memory is written only through a guardian that hashes every record; reasoning is cloud-first but the **data stays sovereign** — nothing leaves without clearing the egress gates. Platão is ~1% of it — the organ that answers *"is this actually done — wired, real, and unable to fake success?"* — carved out to run standalone, in your own agent's loop, with no strings to the rest.
+
+**The point isn't the linter; it's the reflex** — an agent that refuses to say it finished when it didn't. If a $0, never-wrong verifier of that kind is useful to you, that reflex is the whole of Athena: governed, auditable, self-defending. This tool is the doorway; Athena is the room.
 
 ## License
 

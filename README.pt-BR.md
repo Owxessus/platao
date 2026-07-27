@@ -1,6 +1,8 @@
 # Platão
 
-<img src="assets/athena-coin.jpg" align="right" width="108" alt="Athena — o OS soberano de onde o Platão foi extraído">
+<img src="assets/banner.png" alt="Platão — extracted from Athena, the sovereign agentic OS">
+
+[![ci](https://github.com/Owxessus/platao/actions/workflows/ci.yml/badge.svg)](https://github.com/Owxessus/platao/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 
 **[English](README.md) · Português**
 
@@ -274,6 +276,12 @@ O CI roda a prova de cada verificação em todo PR. Sem prova, sem merge. Não �
 
 ---
 
+## Provado, não afirmado
+
+Anti-placebo é uma regra que este projeto aplica a *si mesmo*. **Cada check vem com um par `prove_effect` + `negative_control`** — tem de apanhar o defeito real *e* ficar calado no gémeo honesto, senão não sai (a CI força). E passa na própria auditoria — o Platão **passa limpo no próprio `platao sweep`** — o auditor sobrevive à própria auditoria.
+
+Depois foi endurecido em **código real, 10k–90k★**, em todos os tiers — big-tech, frameworks, projetos de IA-agente, trabalho solo. Nesse teste achou defeitos reais que as suítes não pegaram — dezenas de imports partidos a nível de módulo que a suíte de um projeto de 67k★ nunca apanhou (`ImportError`s latentes em caminhos reais) — e, a metade mais difícil, **ficou calado onde o código era bom.** Cada padrão de falso-positivo em que tropeçou virou uma correção com teste de regressão: **15 classes de falso-positivo eliminadas** em código real. Baixo FP não é promessa aqui — foi *construído*.
+
 ## De onde isto veio
 
 O Platão é uma entidade extraída da **Athena**, um OS agêntico soberano construído sobre uma disciplina única: **anti-placebo, segura, determinística, com governança, auditável.** Na Athena, "você terminou de verdade?" não é um linter que você roda — é um reflexo que o sistema executa sobre si mesmo, toda vez que constrói algo, fiado a dezenas de entidades complementares que curam, gateiam, lembram e provam.
@@ -285,6 +293,10 @@ O resto — a orquestração do juízo, os gates de segurança, a memória, a au
 Por ora: isto se sustenta sozinho. Use.
 
 ---
+
+A Athena é essa disciplina como *sistema*, não como ferramenta: toda ação passa por um **portão de decisão** antes de correr, um **sandbox** que reverte antes de qualquer coisa destrutiva, e um **ledger à prova de adulteração** que regista o que aconteceu; a memória só é escrita por um guardião que faz hash de cada registo; o raciocínio é cloud-first mas os **dados ficam soberanos** — nada sai sem passar pelos portões de egress. O Platão é ~1% disso — o órgão que responde *"isto está mesmo pronto — fiado, real, e incapaz de fingir sucesso?"* — recortado para correr sozinho, no laço do teu agente, sem amarras ao resto.
+
+**O ponto não é o linter; é o reflexo** — um agente que se recusa a dizer que terminou quando não terminou. Se um verificador $0, nunca-errado desse tipo te é útil, esse reflexo é a Athena inteira: governada, auditável, autodefensiva. Esta ferramenta é a porta; a Athena é a sala.
 
 ## Licença
 
