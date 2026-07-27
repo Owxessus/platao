@@ -26,6 +26,8 @@ O Platão não é um linter que corres no código pronto — é a verificação 
 
 ## 30 segundos
 
+<img src="assets/demo.svg" alt="Platão — a real run: type the command, see the real output" width="640">
+
 ```bash
 npm install -g platao          # ou: pipx install platao
 platao check src/service.py    # revê um ficheiro que a sua IA acabou de escrever

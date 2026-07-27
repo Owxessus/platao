@@ -26,6 +26,8 @@ Platão isn't a linter you run on finished code — it's the check an agent runs
 
 ## 30 seconds
 
+<img src="assets/demo.svg" alt="Platão — a real run: type the command, see the real output" width="640">
+
 ```bash
 npm install -g platao          # or: pipx install platao
 platao check src/service.py    # review one file your AI just wrote
