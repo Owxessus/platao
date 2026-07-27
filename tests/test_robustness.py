@@ -213,3 +213,12 @@ def test_hardcoded_secret__in_test_file_is_medium_not_high():
     src = 'password = "hunter2-supersecret-value"\n'
     assert _sev(src, "hardcoded_secret", path="tests/test_login.py") is Severity.MEDIUM
     assert _sev(src, "hardcoded_secret", path="src/app.py") is Severity.HIGH  # prove_effect: real source HIGH
+
+
+def test_hardcoded_secret__dotted_scope_is_not_a_secret():  # FP guard from vscode (98 lexer tokens)
+    # `token = "variable.predefined"` — a Monarch/theme scope, not a credential. Silent.
+    assert "hardcoded_secret" not in ids("token = \"variable.predefined\"\n")
+    assert "hardcoded_secret" not in ids("token = \"delimiter.curly\"\n")
+    # but a placeholder with hyphens is still flagged (kept as MEDIUM elsewhere), and a real key too
+    assert "hardcoded_secret" in ids('api_key = "your-token-example"\n')
+    assert "hardcoded_secret" in ids('API_KEY = "sk-live-abcdef123456"\n')

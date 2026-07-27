@@ -38,12 +38,21 @@ SECRET_ASSIGN = re.compile(
 )
 
 
+_SCOPE_ID = re.compile(r"[a-z][a-z0-9]*(\.[a-z0-9]+)+")  # dotted lowercase: `variable.predefined`
+
+
 def looks_like_secret_value(value: str) -> bool:
     """Does the string have the *entropy* of a real credential, or is it a plain label/word?
 
     A real key/token has mixed case, digits, or symbols (``sk-live-9f3…``). ``CREDENTIAL =
     "credential"`` is an enum label — all-lowercase letters, a dictionary word. Requiring some entropy
     is what stops a secret-*named* constant assigned a plain word from being a false "hardcoded secret".
+
+    A **dotted lowercase identifier** (``variable.predefined``, ``delimiter.curly``) is a scope / enum /
+    namespace, never a credential — vscode's editor assigns 98 of these to a var literally named
+    ``token`` (lexer/theme tokens). The dot alone must not read as entropy.
     """
+    if _SCOPE_ID.fullmatch(value):
+        return False
     return any(c.isdigit() or c.isupper() for c in value) \
         or any(not c.isalnum() and c != "_" for c in value)
