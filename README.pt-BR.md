@@ -10,6 +10,14 @@ Platão é um auditor de completude determinístico para código (e para o códi
 
 Roda como CLI, hook de pre-commit, gate de CI e — o ponto — um **servidor MCP** que qualquer agente de código chama antes de dizer "terminei".
 
+## Feito para o laço, não para a autópsia
+
+O Platão não é um linter que corres no código pronto — é a verificação que um agente corre **enquanto constrói**. Aponta-o ao diff que ele acabou de escrever; responde em milissegundos, de forma determinística; o agente lê e **corrige antes de seguir — e antes de declarar "pronto".** A falha que ele existe para travar não é código feio; é o agente *dizer que terminou quando não terminou* — um módulo meio-fiado, um evento órfão, um "sucesso" que o pipeline não consegue reprovar, um teste que só prova que o ficheiro importa.
+
+**Uso principal — o auto-check do agente (MCP).** Roda o Platão como **servidor MCP** dentro do laço do teu agente: ele chama-o a cada pedaço e não pode dizer "terminei" enquanto um check de completude estiver vermelho. (Também CLI, pre-commit e gate de CI — o mesmo check, mais cedo.)
+
+**Quem ele mais ajuda: modelos mais fracos, baratos e autónomos.** Um modelo de topo já *tenta* fiar o que escreve. O valor do Platão é apanhar os momentos em que o modelo **acha** que terminou mas não — e essa fenda é maior em **modelos baratos a correr muito, sozinhos, sem ninguém a olhar.** O chão é determinístico e custa muito menos do que gerar o código, então dá para correr a cada passo. Num modelo de topo é um cinto de segurança leve; num barato e autónomo é o que mantém o trabalho honesto.
+
 > **Um de três, uma filosofia.** O Platão tem dois irmãos: **[Basanos](https://github.com/Owxessus/basanos)** — a pedra-de-toque da fiação de UI (este botão chama um handler que existe e faz algo?) — e **[Socrates](https://github.com/Owxessus/socrates)** — o refutador (os teus testes pegam bug de verdade, e a tua API pública tem prova?). Cada um é publicado separado e roda sozinho. **Instale qualquer um ao lado do Platão e ele os puxa como olhos extras** — o Basanos responde `ui_wired`, o Socrates responde `capabilities_proven` — no mesmo relatório. Veja [Rodando com os irmãos](#rodando-com-os-irmãos).
 
 ---
@@ -59,6 +67,8 @@ O Platão é deliberadamente dividido para que a parte confiável esteja sempre 
 | **Teto de juízo** (`--judge`, opt-in) | O sênior cético: *um crítico aprovaria isto ou desmontava em 30s?* | Sua conta de LLM | Seu provedor | Sim (é LLM) — por isso é conselho, nunca o gate |
 
 O chão é o que torna o Platão confiável. O teto é o que o torna *esperto* sobre o que uma árvore não vê (um mock com cara de real, uma abstração sem cliente). **O teto é BYO-LLM** — você traz a sua própria chave de API ou um modelo local. O Platão te dá as *perguntas e o rubric*; você escolhe o cérebro. Veja [Custo e roteamento de modelo](#custo-e-roteamento-de-modelo).
+
+**No laço do agente, o teto é um movimento gerador–crítico — não uma passada de LLM redundante.** Verificar é mais barato que gerar, então um *gerador fraco e barato* com um crítico cético bate o gerador sozinho. O ponto é a assimetria: deixe o teto ser um **modelo diferente ou mais forte do que o que escreve o código**, e corra-o nos **checkpoints** (*"acho que este módulo está pronto"*) — nunca por-tecla, onde uma chamada de LLM custaria mais do que poupa. Num gerador de topo o teto é marginal; num barato a correr sozinho é leverage real — a segunda opinião que impede o modelo barato de acreditar no próprio primeiro rascunho.
 
 ---
 

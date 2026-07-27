@@ -10,6 +10,14 @@ Platão is a deterministic completeness auditor for code (and for the code your 
 
 It runs as a CLI, a pre-commit hook, a CI gate, and — the point — an **MCP server** that any coding agent calls before it says "finished."
 
+## Built for the loop, not the post-mortem
+
+Platão isn't a linter you run on finished code — it's the check an agent runs **while it builds**. Point it at the diff it just wrote; it answers in milliseconds, deterministically; the agent reads the answer and **fixes it before moving on — and before it declares "done."** The failure it exists to stop isn't ugly code; it's an agent *saying it finished when it didn't* — a module half-wired, an orphan event, a "success" the pipeline structurally can't fail, a test that only proves the file imports.
+
+**Primary use — the agent's self-check (MCP).** Run Platão as an **MCP server** inside your coding agent's loop: the agent calls it after each chunk and can't claim "finished" while a completeness check is red. (Also a CLI, pre-commit hook, and CI gate — the same check, run earlier.)
+
+**Who it helps most: weaker, cheaper, autonomous models.** A frontier model already *tries* to wire what it writes. Platão's value is catching the moments a model **thinks** it finished but didn't — and that gap is widest on **cheap models running long, on their own, with nobody watching.** The floor is deterministic and costs far less than generating the code, so it's viable to run on every step. On a top model it's a light seatbelt; on a cheap autonomous one it's what keeps the work honest.
+
 > **One of three, one philosophy.** Platão has two siblings: **[Basanos](https://github.com/Owxessus/basanos)** — the touchstone for UI wiring (does this button call a handler that exists and does something?) — and **[Socrates](https://github.com/Owxessus/socrates)** — the cross-examiner (do your tests actually catch bugs, and does your public API have proof?). Each ships separately and runs standalone. **Install any of them alongside Platão and it pulls them in as extra eyes** — Basanos answers `ui_wired`, Socrates answers `capabilities_proven` — folded into the same report. See [Running with its siblings](#running-with-its-siblings).
 
 ---
@@ -59,6 +67,8 @@ Platão is deliberately split so the trustworthy part is always on and the expen
 | **Judgment ceiling** (`--judge`, opt-in) | The skeptical senior: *would a cynic approve this or tear it apart in 30s?* | Your LLM bill | Your provider | Yes (it's an LLM) — so it's advisory, never the gate |
 
 The floor is what makes Platão trustworthy. The ceiling is what makes it *smart* about things a tree can't see (a mock wearing a real face, an abstraction with no caller). **The ceiling is BYO-LLM** — you bring your own API key or a local model. Platão gives you the *questions and the rubric*; you choose the brain. See [Cost & model routing](#cost--model-routing).
+
+**In the agent loop, the ceiling is a generator–critic move — not a redundant LLM pass.** Verification is cheaper than generation, so a *weak, cheap generator* paired with a skeptical critic beats the generator alone. The point is asymmetry: let the ceiling be a **different or stronger model than the one writing the code**, and run it at **checkpoints** (*"I think this module is done"*) — never per-keystroke, where an LLM call would cost more than it saves. On a frontier generator the ceiling is marginal; on a cheap one running autonomously it's real leverage — the second opinion that stops the cheap model from believing its own first draft.
 
 ---
 
