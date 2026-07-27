@@ -16,13 +16,33 @@ mutation testing is deliberately not delegated here — only its static capabili
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from collections.abc import Iterable
+from pathlib import Path
 
 from platao.checks import project_check
 from platao.finding import Finding, Severity
 from platao.project import ProjectIndex
+
+
+def _scan_root(index: ProjectIndex) -> str | None:
+    """The directory that was actually swept — derived from the indexed files, not the display root.
+
+    ``index.root`` is only the base for relative display (it defaults to the cwd), so it can't be
+    handed to a sibling as "the code to scan". The real scope is the common ancestor of the files the
+    index parsed.
+    """
+    paths = [str(m.path) for m in index.modules.values()]
+    if not paths:
+        return None
+    if len(paths) == 1:
+        return str(Path(paths[0]).parent)
+    try:
+        return os.path.commonpath(paths)
+    except ValueError:  # paths on different drives — can't scope a single root
+        return None
 
 
 @project_check("capabilities_proven", "placebo", Severity.MEDIUM)
@@ -39,7 +59,10 @@ def capabilities_proven(index: ProjectIndex) -> Iterable[Finding]:
         import socrates  # feature-detect the sibling; silent if not installed
     except ImportError:
         return
-    for f in socrates.prove_claims(index.root):
+    root = _scan_root(index)
+    if root is None:
+        return
+    for f in socrates.prove_claims(root):
         yield Finding(
             "capabilities_proven", "placebo", Severity.MEDIUM, f.path, f.lineno,
             f"public capability '{f.symbol}' is exposed but no test names it — a claim with no proof "
@@ -60,9 +83,12 @@ def ui_wired(index: ProjectIndex) -> Iterable[Finding]:
     basanos = shutil.which("basanos")
     if basanos is None:
         return
+    root = _scan_root(index)
+    if root is None:
+        return
     try:
         proc = subprocess.run(
-            [basanos, "audit", str(index.root), "--json"],
+            [basanos, "audit", root, "--json"],
             capture_output=True, text=True, timeout=120,
         )
         findings = json.loads(proc.stdout or "[]")
