@@ -36,3 +36,14 @@ SECRET_ASSIGN = re.compile(
     r"""access[_-]?token|refresh[_-]?token|token|private[_-]?key|client[_-]?secret|credential)\b"""
     rf"""\s*[:=]\s*(['"])([^'"\s]{{{MIN_SECRET_LEN},}})\2"""
 )
+
+
+def looks_like_secret_value(value: str) -> bool:
+    """Does the string have the *entropy* of a real credential, or is it a plain label/word?
+
+    A real key/token has mixed case, digits, or symbols (``sk-live-9f3…``). ``CREDENTIAL =
+    "credential"`` is an enum label — all-lowercase letters, a dictionary word. Requiring some entropy
+    is what stops a secret-*named* constant assigned a plain word from being a false "hardcoded secret".
+    """
+    return any(c.isdigit() or c.isupper() for c in value) \
+        or any(not c.isalnum() and c != "_" for c in value)

@@ -194,3 +194,15 @@ def test_fail_closed__narrow_except_is_silent():
     src = ("def is_authorized(user):\n    try:\n        return check(user)\n"
            "    except KeyError:\n        return True\n")
     assert "fail_closed" not in ids(src)
+
+
+def test_hardcoded_secret__label_word_is_not_a_secret():  # FP guard (hermes-agent CREDENTIAL="credential")
+    assert "hardcoded_secret" not in ids('CREDENTIAL = "credential"\n')
+    assert "hardcoded_secret" not in ids('token = "placeholder"\n')  # plain word, no entropy
+
+
+def test_fail_closed__value_resolver_returning_true_is_silent():  # FP guard (hermes _resolve_aux_verify)
+    # Returns a TLS-verify SETTING where True is the secure value — it fails closed, not open.
+    src = ("def _resolve_aux_verify(url):\n    try:\n        return resolve_tls(url)\n"
+           "    except Exception:\n        return True\n")
+    assert "fail_closed" not in ids(src)

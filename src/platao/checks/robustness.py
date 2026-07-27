@@ -22,7 +22,12 @@ from platao.checks._ast import (
 )
 from platao.context import FileContext
 from platao.finding import Finding, Severity
-from platao.patterns import MIN_SECRET_LEN, PLACEHOLDER, SECRET_NAME
+from platao.patterns import MIN_SECRET_LEN, PLACEHOLDER, SECRET_NAME, looks_like_secret_value
+
+# Verbs that mean a function *resolves a value*, not *makes an access decision*. `_resolve_aux_verify`
+# returns a TLS-verify setting where `True` is the secure value — returning it in an `except` is failing
+# CLOSED, not open. Excluding these keeps `fail_closed` to genuine gates.
+_RESOLVER_VERBS = frozenset({"resolve", "load", "read", "fetch", "compute", "parse", "build", "lookup"})
 
 # A function whose name says it makes a security / validation / access decision. Only these are held
 # to "fail closed" — the name is the proxy for "this is a gate", which keeps `fail_closed` from firing
@@ -39,12 +44,11 @@ _GUARD_PREFIXES = ("authoriz", "authenticat", "valid", "permit", "permiss", "all
 
 
 def _is_guard_name(name: str) -> bool:
-    """Does the function name read as an access/validation decision (token-wise)?"""
-    for token in re.findall(r"[A-Za-z][a-z]*", name):
-        low = token.lower()
-        if low in _GUARD_TOKENS or any(low.startswith(p) for p in _GUARD_PREFIXES):
-            return True
-    return False
+    """Does the function name read as an access/validation *decision* (not a value resolver)?"""
+    tokens = [t.lower() for t in re.findall(r"[A-Za-z][a-z]*", name)]
+    if any(t in _RESOLVER_VERBS for t in tokens):
+        return False  # resolves/loads a value (e.g. a TLS-verify setting), doesn't grant access
+    return any(t in _GUARD_TOKENS or any(t.startswith(p) for p in _GUARD_PREFIXES) for t in tokens)
 
 
 @register("swallowed_error", "robustness", Severity.MEDIUM)
@@ -224,7 +228,7 @@ def hardcoded_secret(ctx: FileContext) -> Iterable[Finding]:
             continue
         if not (isinstance(value, ast.Constant) and isinstance(value.value, str)):
             continue
-        if len(value.value) < MIN_SECRET_LEN:
+        if len(value.value) < MIN_SECRET_LEN or not looks_like_secret_value(value.value):
             continue
         for name in names:
             if not SECRET_NAME.search(name):

@@ -17,7 +17,7 @@ import re
 from dataclasses import dataclass
 
 from platao.finding import Finding, Severity
-from platao.patterns import PLACEHOLDER, SECRET_ASSIGN
+from platao.patterns import PLACEHOLDER, SECRET_ASSIGN, looks_like_secret_value
 
 # Non-Python code files this layer scans. Python goes through the deep AST checks, never here.
 POLYGLOT_EXTS = frozenset({
@@ -157,6 +157,8 @@ def scan(path: str, source: str) -> list[Finding]:
     secret = _BY_ID["hardcoded_secret"]
     for m in SECRET_ASSIGN.finditer(source):
         name, value = m.group(1), m.group(3)
+        if not looks_like_secret_value(value):
+            continue  # a plain lowercase word is a label/enum, not a credential
         placeholder = bool(PLACEHOLDER.search(value))
         sev = Severity.MEDIUM if placeholder else Severity.HIGH
         hint = " (looks like a placeholder/fixture)" if placeholder else ""
