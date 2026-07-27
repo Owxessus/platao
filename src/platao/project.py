@@ -75,7 +75,7 @@ class ModuleInfo:
     from_imports: list[tuple[int, str, str]] = field(default_factory=list)  # (line, base_module, name)
     bound_names: set[str] = field(default_factory=set)      # top-level names this module exposes
     has_star_import: bool = False
-    guarded_from_lines: set[int] = field(default_factory=set)  # `from … import` lines under try/except-ImportError
+    guarded_from_lines: set[int] = field(default_factory=set)  # `from … import` lines under try/except
     lines: list[str] = field(default_factory=list)
 
     def snippet(self, line: int) -> str:

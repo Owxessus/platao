@@ -11,7 +11,6 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 
-
 # Directory names that mark a test tree, and filename markers that mark a test/fixture file. The
 # filename markers cover conventions beyond pytest — JS/TS suites and helpers (`foo.suite.ts`,
 # `x-test-helpers.ts`, `contract-suites.ts`), Jest/Vitest (`*.test.*`, `*.spec.*`), e2e and fixtures.

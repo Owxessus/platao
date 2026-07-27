@@ -16,8 +16,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from platao.finding import Finding, Severity
 from platao.context import _looks_like_test
+from platao.finding import Finding, Severity
 from platao.patterns import PLACEHOLDER, SECRET_ASSIGN, looks_like_secret_value
 
 # Non-Python code files this layer scans. Python goes through the deep AST checks, never here.

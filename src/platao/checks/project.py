@@ -93,7 +93,7 @@ def dangling_import(index: ProjectIndex) -> Iterable[Finding]:
     for m in index.modules.values():
         for line, base, name in m.from_imports:
             if line in m.guarded_from_lines:
-                continue  # `try: from x import y \n except ImportError:` — optional import, absence is intentional
+                continue  # under try/except-ImportError — an optional import; its absence is intended
             if base and base.split(".")[0] in _STDLIB:
                 continue  # `from bisect import bisect_right` — stdlib is external; a same-named repo file
                 # (a `bisect.py` in a no-__init__ dir) must not shadow it into a false dangling
