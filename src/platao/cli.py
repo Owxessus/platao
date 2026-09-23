@@ -86,15 +86,17 @@ def _install_hook() -> int:
     import subprocess
 
     try:
+        # `--git-path hooks` is where git itself will look: it honors `core.hooksPath` and, in a
+        # linked worktree, the common dir — `--git-dir`/hooks is silently ignored in both cases.
         result = subprocess.run(
-            ["git", "rev-parse", "--git-dir"], capture_output=True, text=True, check=True,
+            ["git", "rev-parse", "--git-path", "hooks"], capture_output=True, text=True, check=True,
         )
     except (OSError, subprocess.CalledProcessError):
         print("not a git repository (run this from inside your repo)", file=sys.stderr)
         return 2
 
     marker = "# platao pre-commit"
-    hook = Path(result.stdout.strip()) / "hooks" / "pre-commit"
+    hook = Path(result.stdout.strip()) / "pre-commit"
     hook.parent.mkdir(parents=True, exist_ok=True)
     if hook.exists() and marker not in hook.read_text(encoding="utf-8", errors="ignore"):
         print(f"a pre-commit hook already exists at {hook}.\n"
