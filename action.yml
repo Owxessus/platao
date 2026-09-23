@@ -24,9 +24,12 @@ runs:
     - uses: actions/setup-python@v5
       with:
         python-version: "3.12"
+    # Install the action's own checkout (the exact ref the workflow pinned), never a same-named
+    # package from PyPI: `platao` is not published there, so a PyPI install failed — and would pull
+    # whoever registers the name first.
     - name: Install Platão
       shell: bash
-      run: pip install "platao${{ inputs.deep == 'true' && '[deep]' || '' }}"
+      run: pip install "${GITHUB_ACTION_PATH}${{ inputs.deep == 'true' && '[deep]' || '' }}"
     - name: Audit
       shell: bash
       run: platao sweep ${{ inputs.paths }} --fail-on ${{ inputs.fail-on }} --no-color
