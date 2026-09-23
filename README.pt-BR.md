@@ -8,19 +8,19 @@
 
 **Sua IA disse "pronto". O Platão faz as perguntas chatas que um sênior cético faria — antes de você confiar.**
 
-Platão é um auditor de completude determinístico para código (e para o código que os seus agentes de IA escrevem). Ele não adivinha. Ele lê a árvore de sintaxe de verdade e responde perguntas como: *Isto está fiado, ou é código morto? O teste prova comportamento, ou só que o ficheiro importa? O "sucesso" é real, ou o pipeline é estruturalmente incapaz de falhar?* — exatamente as maneiras como um agente confiante-mas-errado deixa a obra silenciosamente incompleta.
+Platão é um auditor de completude determinístico para código (e para o código que os seus agentes de IA escrevem). Ele não adivinha. Ele lê a árvore de sintaxe de verdade e responde perguntas como: *Isto está ligado, ou é código morto? O teste prova comportamento, ou só que o arquivo importa? O "sucesso" é real, ou o pipeline é estruturalmente incapaz de falhar?* — exatamente as maneiras como um agente confiante-mas-errado deixa a obra silenciosamente incompleta.
 
 Roda como CLI, hook de pre-commit, gate de CI e — o ponto — um **servidor MCP** que qualquer agente de código chama antes de dizer "terminei".
 
 ## Feito para o laço, não para a autópsia
 
-O Platão não é um linter que corres no código pronto — é a verificação que um agente corre **enquanto constrói**. Aponta-o ao diff que ele acabou de escrever; responde em milissegundos, de forma determinística; o agente lê e **corrige antes de seguir — e antes de declarar "pronto".** A falha que ele existe para travar não é código feio; é o agente *dizer que terminou quando não terminou* — um módulo meio-fiado, um evento órfão, um "sucesso" que o pipeline não consegue reprovar, um teste que só prova que o ficheiro importa.
+O Platão não é um linter que você roda no código pronto — é a verificação que um agente roda **enquanto constrói**. Aponte-o para o diff que ele acabou de escrever; ele responde em milissegundos, de forma determinística; o agente lê e **corrige antes de seguir — e antes de declarar "pronto".** A falha que ele existe para travar não é código feio; é o agente *dizer que terminou quando não terminou* — um módulo meio ligado, um evento órfão, um "sucesso" que o pipeline não consegue reprovar, um teste que só prova que o arquivo importa.
 
-**Uso principal — o auto-check do agente (MCP).** Roda o Platão como **servidor MCP** dentro do laço do teu agente: ele chama-o a cada pedaço e não pode dizer "terminei" enquanto um check de completude estiver vermelho. (Também CLI, pre-commit e gate de CI — o mesmo check, mais cedo.)
+**Uso principal — o auto-check do agente (MCP).** Rode o Platão como **servidor MCP** dentro do laço do seu agente: o agente o chama a cada pedaço e não pode dizer "terminei" enquanto um check de completude estiver vermelho. (Também CLI, pre-commit e gate de CI — o mesmo check, mais cedo.)
 
-**Quem ele mais ajuda: modelos mais fracos, baratos e autónomos.** Um modelo de topo já *tenta* fiar o que escreve. O valor do Platão é apanhar os momentos em que o modelo **acha** que terminou mas não — e essa fenda é maior em **modelos baratos a correr muito, sozinhos, sem ninguém a olhar.** O chão é determinístico e custa muito menos do que gerar o código, então dá para correr a cada passo. Num modelo de topo é um cinto de segurança leve; num barato e autónomo é o que mantém o trabalho honesto.
+**Quem ele mais ajuda: modelos mais fracos, baratos e autônomos.** Um modelo de topo já *tenta* ligar o que escreve. O valor do Platão é pegar os momentos em que o modelo **acha** que terminou mas não — e essa lacuna é maior em **modelos baratos rodando por muito tempo, sozinhos, sem ninguém olhando.** O chão é determinístico e custa muito menos do que gerar o código, então dá para rodar a cada passo. Num modelo de topo é um cinto de segurança leve; num barato e autônomo é o que mantém o trabalho honesto.
 
-> **Um de três, uma filosofia.** O Platão tem dois irmãos: **[Basanos](https://github.com/Owxessus/basanos)** — a pedra-de-toque da fiação de UI (este botão chama um handler que existe e faz algo?) — e **[Socrates](https://github.com/Owxessus/socrates)** — o refutador (os teus testes pegam bug de verdade, e a tua API pública tem prova?). Cada um é publicado separado e roda sozinho. **Instale qualquer um ao lado do Platão e ele os puxa como olhos extras** — o Basanos responde `ui_wired`, o Socrates responde `capabilities_proven` — no mesmo relatório. Veja [Rodando com os irmãos](#rodando-com-os-irmãos).
+> **Um de três, uma filosofia.** O Platão tem dois irmãos: **[Basanos](https://github.com/Owxessus/basanos)** — a pedra-de-toque da fiação de UI (este botão chama um handler que existe e faz algo?) — e **[Socrates](https://github.com/Owxessus/socrates)** — o refutador (os seus testes pegam bug de verdade, e a sua API pública tem prova?). Cada um é publicado separado e roda sozinho. **Instale qualquer um ao lado do Platão e ele os puxa como olhos extras** — o Basanos responde `ui_wired`, o Socrates responde `capabilities_proven` — no mesmo relatório. Veja [Rodando com os irmãos](#rodando-com-os-irmãos).
 
 ---
 
@@ -29,8 +29,8 @@ O Platão não é um linter que corres no código pronto — é a verificação 
 <img src="assets/demo.svg" alt="Platão — a real run: type the command, see the real output" width="640">
 
 ```bash
-npm install -g platao          # ou: pipx install platao
-platao check src/service.py    # revê um ficheiro que a sua IA acabou de escrever
+pipx install "platao[mcp,deep] @ git+https://github.com/Owxessus/platao"   # ainda não está no PyPI
+platao check src/service.py    # revisa um arquivo que a sua IA acabou de escrever
 platao sweep .                 # varre o repo inteiro atrás de testes-placebo e código morto
 ```
 
@@ -43,7 +43,7 @@ Platão — src/service.py
 1 crítico · 1 preocupação · 1 nota
 ```
 
-O `sweep` enxerga entre ficheiros também — um `from .db import connect` quebrado (`dangling_import`) ou um módulo que ninguém importa (`unwired`) só uma passada no repo inteiro pega.
+O `sweep` enxerga entre arquivos também — um `from .db import connect` quebrado (`dangling_import`) ou um módulo que ninguém importa (`unwired`) só uma passada no repo inteiro pega.
 
 Esse é o **chão determinístico, grátis e offline** — sem chave de API, sem rede, sem LLM. Roda igual toda vez e **não alucina**, porque *sabe* pela AST em vez de *adivinhar* por um modelo.
 
@@ -67,12 +67,12 @@ O Platão é deliberadamente dividido para que a parte confiável esteja sempre 
 
 | Camada | O que é | Custo | Rede | Alucina? |
 |---|---|---|---|---|
-| **Chão determinístico** (default) | Verificações AST/estáticas: fiado? órfão? teste real? placebo? débito rastreado? | **$0** | Offline | **Não** — lê a árvore |
+| **Chão determinístico** (default) | Verificações AST/estáticas: ligado? órfão? teste real? placebo? débito rastreado? | **$0** | Offline | **Não** — lê a árvore |
 | **Teto de juízo** (`--judge`, opt-in) | O sênior cético: *um crítico aprovaria isto ou desmontava em 30s?* | Sua conta de LLM | Seu provedor | Sim (é LLM) — por isso é conselho, nunca o gate |
 
-O chão é o que torna o Platão confiável. O teto é o que o torna *esperto* sobre o que uma árvore não vê (um mock com cara de real, uma abstração sem cliente). **O teto é BYO-LLM** — você traz a sua própria chave de API ou um modelo local. O Platão te dá as *perguntas e o rubric*; você escolhe o cérebro. Veja [Custo e roteamento de modelo](#custo-e-roteamento-de-modelo).
+O chão é o que torna o Platão confiável. O teto é o que o torna *esperto* sobre o que uma árvore não vê (um mock com cara de real, uma abstração sem cliente). **O teto é BYO-LLM** — você traz a sua própria chave de API ou um modelo local. O Platão te dá as *perguntas e a rubrica*; você escolhe o cérebro. Veja [Custo e roteamento de modelo](#custo-e-roteamento-de-modelo).
 
-**No laço do agente, o teto é um movimento gerador–crítico — não uma passada de LLM redundante.** Verificar é mais barato que gerar, então um *gerador fraco e barato* com um crítico cético bate o gerador sozinho. O ponto é a assimetria: deixe o teto ser um **modelo diferente ou mais forte do que o que escreve o código**, e corra-o nos **checkpoints** (*"acho que este módulo está pronto"*) — nunca por-tecla, onde uma chamada de LLM custaria mais do que poupa. Num gerador de topo o teto é marginal; num barato a correr sozinho é leverage real — a segunda opinião que impede o modelo barato de acreditar no próprio primeiro rascunho.
+**No laço do agente, o teto é um movimento gerador–crítico — não uma passada de LLM redundante.** Verificar é mais barato que gerar, então um *gerador fraco e barato* com um crítico cético bate o gerador sozinho. O ponto é a assimetria: deixe o teto ser um **modelo diferente ou mais forte do que o que escreve o código**, e rode-o nos **checkpoints** (*"acho que este módulo está pronto"*) — nunca a cada tecla, onde uma chamada de LLM custaria mais do que economiza. Num gerador de topo o teto é marginal; num barato rodando sozinho é alavanca de verdade — a segunda opinião que impede o modelo barato de acreditar no próprio primeiro rascunho.
 
 ---
 
@@ -83,14 +83,14 @@ Os checks **profundos** do Platão — a análise de placebo/completude e o graf
 Essa camada de regex é de propósito rasa. Para análise **profunda** multi-linguagem há uma camada tree-sitter opcional:
 
 ```bash
-pip install 'platao[deep]'   # ASTs reais para JS, TS, Go, Ruby, Java, Rust, PHP, C#, …
+pip install 'platao[deep] @ git+https://github.com/Owxessus/platao'   # ASTs reais para JS, TS, Go, Ruby, Java, Rust, PHP, C#, …
 ```
 
-Com ela instalada, checks estruturais profundos rodam nessas linguagens também — `not_stub` (função de nome-de-ação com corpo genuinamente vazio, distinguida de uma declaração abstrata honesta) e `empty_test` (um `it(...)`/`test(...)` JS/TS cujo corpo não afirma nada — o cheiro do teste-fantasma). O core continua zero-dependência sem o extra; a camada poliglota de regex ainda cobre esses ficheiros. Mais checks profundos entram como queries tree-sitter ao lado destes. Hoje: profundo em Python (sempre) e nas linguagens da camada deep (com o extra), amplo em toda parte.
+Com ela instalada, checks estruturais profundos rodam nessas linguagens também — `not_stub` (função de nome-de-ação com corpo genuinamente vazio, distinguida de uma declaração abstrata honesta) e `empty_test` (um `it(...)`/`test(...)` JS/TS cujo corpo não afirma nada — o cheiro do teste-fantasma). O core continua zero-dependência sem o extra; a camada poliglota de regex ainda cobre esses arquivos. Mais checks profundos entram como queries tree-sitter ao lado destes. Hoje: profundo em Python (sempre) e nas linguagens da camada deep (com o extra), amplo em toda parte.
 
 ## As perguntas
 
-Toda pergunta é `CODE` (determinística, grátis) ou `JUDGMENT` (precisa de LLM). **Todas são opt-in** — ligue os packs que quer, desligue os que não quer, adicione os seus. Os defaults são o conjunto de alto sinal e baixo falso-positivo — calibrados contra repos reais maduros (`requests`, `flask`, `click`, …) para ficar quieto em código idiomático e alto em defeito genuíno.
+Toda pergunta é `CODE` (determinística, grátis) ou `JUDGMENT` (precisa de LLM). **Toda verificação determinística roda por padrão; desligue qualquer uma pelo id** no [`.platao.json`](#arquivo-de-config) (packs de perguntas e perguntas suas estão planejados). Os defaults são o conjunto de alto sinal e baixo falso-positivo — calibrados contra repos reais maduros (`requests`, `flask`, `click`, …) para ficar quieto em código idiomático e alto em defeito genuíno.
 
 > **O que já vem hoje vs. o roadmap.** A lista abaixo é o checklist completo que orienta o Platão. Os checks **vivos nesta versão** são exatamente o que `platao list-checks` imprime — hoje o núcleo conectividade / placebo / robustez / higiene (`not_stub`, `dangling_import`, `unwired`, `swallowed_error`, `dangerous_dynamic`, `mutable_default`, `hardcoded_secret`, `fail_closed`, `not_god_function`, `debt_tracked`, `debug_leftover`, e os checks de teste-placebo), o `not_stub`/`empty_test` profundo para outras linguagens via `platao[deep]`, mais as nove perguntas de juízo `momo`. O resto é roadmap — cada um entra sob o mesmo gate de prova (ver [Contribuindo](#contribuindo--o-gate-rígido)). **Rode `platao list-checks` para o conjunto autoritativo na sua versão.**
 
@@ -119,7 +119,7 @@ Toda pergunta é `CODE` (determinística, grátis) ou `JUDGMENT` (precisa de LLM
 - `deps_declared` — todo import de terceiro declarado no `requirements`/`package.json`?
 - `no_hardcoded_secret` — nenhuma chave/token no código **ou** em log?
 - `no_hardcoded_path` — caminhos de config/arg, não cravados?
-- `atomic_write` — escrita de ficheiro atômica (temp+replace), não corruptível a meio?
+- `atomic_write` — escrita de arquivo atômica (temp+replace), que não se corrompe no meio?
 
 **Higiene e débito**
 - `no_debug_leftover` — nenhum `print`/`console.log`/`debugger` esquecido?
@@ -137,51 +137,52 @@ Toda pergunta é `CODE` (determinística, grátis) ou `JUDGMENT` (precisa de LLM
 - `momo_scrutiny` — **a estrela.** *Um sênior cético aprovaria isto, ou desmontava em 30 segundos? O que ele ataca primeiro?*
 - `real_or_mock` — é real, ou um mock com cara de real?
 - `edge_cases` — vazio / nulo / limite / entrada grande / unicode / concorrente cobertos?
+- `failure_path` — trata o caminho de falha, não só o caminho feliz?
 - `single_responsibility` — uma responsabilidade, ou uma god-function se formando?
 - `reuse_over_create` — confirmou que nada já faz isso (sem duplicação)?
 - `abstraction_earns_keep` — a abstração tem mais de um cliente?
 - `simpler_version` — existe versão mais simples que resolve igual?
 - `hidden_magic` — acoplamento/mágica escondida que ninguém explica?
 
-**Adicione a sua em uma linha** (veja [Configuração](#configuração)). Importe o seu `CLAUDE.md` / `AGENTS.md` e o Platão transforma as suas regras da casa em perguntas.
+**Planejado:** adicionar a sua pergunta em uma linha, e importar o seu `CLAUDE.md` / `AGENTS.md` para que as regras da casa virem perguntas (veja [Configuração](#configuração)).
 
 ---
 
 ## Modos de uso (roteie por onde o trabalho acontece)
 
-Você escolhe como ele se encaixa, e pode rotear por complexidade — só determinístico para checagens baratas e rápidas; adicione a camada de juízo só em ficheiros complexos ou críticos.
+Você escolhe como ele se encaixa, e pode rotear por complexidade — só determinístico para checagens baratas e rápidas; adicione a camada de juízo só em arquivos complexos ou críticos.
 
 | Modo | Comando / setup | Melhor para |
 |---|---|---|
 | **CLI** | `platao check <path>` · `platao sweep .` | Manual, "minha IA terminou de verdade?" |
 | **Hook de pre-commit** | `platao install-hook` | Barrar um commit num concern crítico |
-| **Gate de CI** | GitHub Action (`uses: Owxessus/platao@main`) | Falha o build em achados ≥ `--fail-on` (um ratchet "só-novos" está planeado) |
+| **Gate de CI** | GitHub Action (`uses: Owxessus/platao@main`) | Falha o build em achados ≥ `--fail-on` (um ratchet "só-novos" está planejado) |
 | **Servidor MCP** ⭐ | `platao mcp` | Qualquer agente (Claude Code, Cursor, …) chama antes de dizer "pronto" |
 | **SDK** | `import platao` | Seu próprio tooling |
 
-O **servidor MCP** é o ponto. Expõe duas tools — `platao_check` (audita um ficheiro ou diretório) e `platao_list_checks` — para que qualquer agente com MCP verifique o próprio trabalho antes de alegar conclusão, sem precisar de integração com editor. Instale o extra e rode:
+O **servidor MCP** é o ponto. Expõe duas tools — `platao_check` (audita um arquivo ou diretório) e `platao_list_checks` — para que qualquer agente com MCP verifique o próprio trabalho antes de alegar conclusão, sem precisar de integração com editor. Instale o extra e rode:
 
 ```bash
-pip install 'platao[mcp]'
+pip install 'platao[mcp] @ git+https://github.com/Owxessus/platao'
 platao mcp        # servidor stdio; aponte o seu agente para ele
 ```
 
-Há um **agente de construir-e-auditar** completo e rodável em [`examples/agent/`](examples/agent/): um projeto Claude Code que liga Platão e Basanos como servidores MCP e dá ao agente uma regra — *construa, depois audite, depois corrija, e só então diga "pronto"*. Vem com ficheiros de demo quebrados de propósito para você ver as tools dispararem já na primeira rodada.
+Há um **agente de construir-e-auditar** completo e rodável em [`examples/agent/`](examples/agent/): um projeto Claude Code que liga Platão e Basanos como servidores MCP e dá ao agente uma regra — *construa, depois audite, depois corrija, e só então diga "pronto"*. Vem com arquivos de demo quebrados de propósito para você ver as tools dispararem já na primeira rodada.
 
 ---
 
 ## Custo e roteamento de modelo
 
-**O chão determinístico é $0, sempre, e roda em toda checagem.** Esta seção é só sobre a camada de juízo opt-in, que usa o LLM que você apontar — **você escolhe o modelo, e pode rotear por complexidade** (modelo barato ou só-chão para diffs simples; modelo premium para ficheiros críticos).
+**O chão determinístico é $0, sempre, e roda em toda checagem.** Esta seção é só sobre a camada de juízo opt-in, que usa o LLM que você apontar — **você escolhe o modelo, e pode rotear por complexidade** (modelo barato ou só-chão para diffs simples; modelo premium para arquivos críticos).
 
 ### O modelo de tokens (medido, reproduzível)
 
-Um review de juízo envia: um preâmbulo curto + o ficheiro em revisão (limitado a **12.000 caracteres** — isso limita o seu pior custo) + as perguntas de juízo ativadas. Medido num ficheiro representativo de ~440 linhas com 12 perguntas ligadas:
+Um review de juízo envia: um preâmbulo curto + o arquivo em revisão (limitado a **12.000 caracteres** — isso limita o seu pior custo) + as perguntas de juízo ativadas. Medido num arquivo representativo de ~440 linhas com 12 perguntas ligadas (hoje saem 9, então o output real é um pouco menor):
 
 - **Input:** ≈ 3.500 tokens
 - **Output:** ≈ 750 tokens (uma linha por pergunta)
 
-**Custo por review = `3500/1e6 × preço_in + 750/1e6 × preço_out`.** Encaixe o preço de qualquer provedor. Ficheiros pequenos custam ~40–50% disto; o teto de 12k chars é o limite.
+**Custo por review = `3500/1e6 × preço_in + 750/1e6 × preço_out`.** Encaixe o preço de qualquer provedor. Arquivos pequenos custam ~40–50% disto; o teto de 12k chars é o limite.
 
 ### Tabela de referência (~10 tiers)
 
@@ -201,7 +202,7 @@ Preços de **2026-06-24**; preço de LLM deriva — **confirme as taxas atuais n
 | Topo | **Claude Fable 5** | 10,00 | 50,00 | **$0,0725** | $72,5 |
 
 Notas de total honestidade:
-- **Cache não ajuda aqui.** O corpo do ficheiro muda a cada review; só o preâmbulo+perguntas (~500 tokens) é estável, abaixo do piso de cache. Nenhum desconto de cache alegado.
+- **Cache não ajuda aqui.** O corpo do arquivo muda a cada review; só o preâmbulo+perguntas (~500 tokens) é estável, abaixo do piso de cache. Nenhum desconto de cache alegado.
 - Um review verboso (um parágrafo por pergunta) pode dobrar o custo de output. Ainda centavos.
 - **Roteamento:** configure um modelo barato para `platao check` a cada save e um premium só para `--judge` em caminhos críticos, ou rode **só-chão** (grátis) e reserve o juízo para quando realmente quiser o olho do sênior.
 
@@ -222,20 +223,20 @@ platao check src/service.py --judge
 
 O juízo é **consultivo**: os achados aparecem mas **não mexem no exit code** — os checks determinísticos é que são o portão (você não reprova o CI por opinião de LLM). E se o modelo não puder ser alcançado, o Platão diz isso com um achado `judge_unverified` — nunca reporta "tudo certo" em silêncio.
 
-### Ficheiro de config
+### Arquivo de config
 
-Desligue checks específicos com um `.platao.json` na raiz do repo (zero-dependência, real hoje). Sem ficheiro = nada desligado:
+Desligue checks específicos com um `.platao.json` na raiz do repo (zero-dependência, real hoje). Sem arquivo = nada desligado:
 
 ```json
-{ "disable": ["debt_tracked", "ui_marble_tokens"] }
+{ "disable": ["debt_tracked", "not_god_function"] }
 ```
 
-Ao varrer uma árvore, o Platão anda por cima de diretórios vendorados e gerados por padrão — `node_modules`, `.venv`/`venv`, `site-packages`, `build`/`dist`, os caches, e pastas de código vendorado (`vendor`, `third_party`, `thirdparty`, …). Código que você não escreveu não é seu para auditar. (Aponte a tool direto numa dessas pastas para forçar.)
+Ao varrer uma árvore, o Platão pula por padrão diretórios vendorizados e gerados — `node_modules`, `.venv`/`venv`, `site-packages`, `build`/`dist`, os caches, e pastas de código vendorado (`vendor`, `third_party`, `thirdparty`, …). Código que você não escreveu não é seu para auditar. (Aponte a tool direto numa dessas pastas para forçar.)
 
-Rode `platao list-checks` para ver todos os ids que dá para desligar. Um `.platao.yml` mais rico (packs de perguntas, importar o seu `CLAUDE.md` como perguntas) está **planeado** — a forma que ele terá:
+Rode `platao list-checks` para ver todos os ids que dá para desligar. Um `.platao.yml` mais rico (packs de perguntas, importar o seu `CLAUDE.md` como perguntas) está **planejado** — a forma que ele terá:
 
 ```yaml
-# .platao.yml (planeado)
+# .platao.yml (planejado)
 questions:
   packs: { connected: true, placebo: true, robustness: true, hygiene: true, judgment: false }
   disable: [typed_documented]
@@ -246,16 +247,16 @@ questions:
 
 ## Rodando com os irmãos
 
-O Platão é o interrogador; os irmãos são olhos extras que ele ganha quando estão presentes. Os dois são **feature-detect e silenciosos quando ausentes** — sem config, e um irmão que falta nunca dá erro — e os dois ficam dentro da promessa do Platão: leem o teu código, nunca *rodam* o teu app.
+O Platão é o interrogador; os irmãos são olhos extras que ele ganha quando estão presentes. Os dois são **feature-detect e silenciosos quando ausentes** — sem config, e um irmão que falta nunca dá erro — e os dois ficam dentro da promessa do Platão: leem o seu código, nunca *rodam* o seu app.
 
-- **[Socrates](https://github.com/Owxessus/socrates)** (Python — importado in-process). Num `sweep` do repo inteiro, a pergunta `capabilities_proven` acende e pergunta ao Socrates: quais capacidades públicas nenhum teste nomeia? Só a capability-proof *estática* dele é delegada — o mutation testing dinâmico (`socrates mutate`) você roda explicitamente, então o Platão continua "nunca executa o teu código".
+- **[Socrates](https://github.com/Owxessus/socrates)** (Python — importado in-process). Num `sweep` do repo inteiro, a pergunta `capabilities_proven` acende e pergunta ao Socrates: quais capacidades públicas nenhum teste nomeia? Só a capability-proof *estática* dele é delegada — o mutation testing dinâmico (`socrates mutate`) você roda explicitamente, então o Platão continua "nunca executa o seu código".
 
   ```bash
-  pipx install platao          # depois, no mesmo ambiente:
+  pipx install "platao @ git+https://github.com/Owxessus/platao"   # depois, no mesmo ambiente:
   pip install socrates-oss     # o sweep passa a incluir capabilities_proven
   ```
 
-- **[Basanos](https://github.com/Owxessus/basanos)** (um CLI Node — chamado por subprocess). Se o `basanos` estiver no PATH, a pergunta `ui_wired` delega a ele e dobra os controles de UI mortos/stub no relatório.
+- **[Basanos](https://github.com/Owxessus/basanos)** (um CLI Node — chamado por subprocess). Se o `basanos` estiver no PATH, a pergunta `ui_wired` delega a ele e inclui no relatório os controles de UI mortos/stub.
 
   ```bash
   npm install -g basanos       # o sweep passa a incluir ui_wired
@@ -280,13 +281,13 @@ O CI roda a prova de cada verificação em todo PR. Sem prova, sem merge. Não �
 
 ## Provado, não afirmado
 
-Anti-placebo é uma regra que este projeto aplica a *si mesmo*. **Cada check vem com um par `prove_effect` + `negative_control`** — tem de apanhar o defeito real *e* ficar calado no gémeo honesto, senão não sai (a CI força). E passa na própria auditoria — o Platão **passa limpo no próprio `platao sweep`** — o auditor sobrevive à própria auditoria.
+Anti-placebo é uma regra que este projeto aplica a *si mesmo*. **Cada check vem com um par `prove_effect` + `negative_control`** — tem de pegar o defeito real *e* ficar calado no gêmeo honesto, senão não entra (o CI cobra). E passa na própria auditoria — o Platão **passa limpo no próprio `platao sweep`** — o auditor sobrevive à própria auditoria.
 
-Depois foi endurecido em **código real, 10k–90k★**, em todos os tiers — big-tech, frameworks, projetos de IA-agente, trabalho solo. Nesse teste achou defeitos reais que as suítes não pegaram — dezenas de imports partidos a nível de módulo que a suíte de um projeto de 67k★ nunca apanhou (`ImportError`s latentes em caminhos reais) — e, a metade mais difícil, **ficou calado onde o código era bom.** Cada padrão de falso-positivo em que tropeçou virou uma correção com teste de regressão: **15 classes de falso-positivo eliminadas** em código real. Baixo FP não é promessa aqui — foi *construído*.
+Depois foi endurecido em **código real, 10k–90k★**, em todos os tiers — big-tech, frameworks, projetos de IA-agente, trabalho solo. Nesse teste achou defeitos reais que as suítes não pegaram — dezenas de imports quebrados no nível do módulo que a suíte de um projeto de 67k★ nunca pegou (`ImportError`s latentes em caminhos reais) — e, a metade mais difícil, **ficou calado onde o código era bom.** Cada padrão de falso-positivo em que tropeçou virou uma correção com teste de regressão: **15 classes de falso-positivo eliminadas** em código real. Baixo FP não é promessa aqui — foi *construído*.
 
 ## De onde isto veio
 
-O Platão é uma entidade extraída da **Athena**, um OS agêntico soberano construído sobre uma disciplina única: **anti-placebo, segura, determinística, com governança, auditável.** Na Athena, "você terminou de verdade?" não é um linter que você roda — é um reflexo que o sistema executa sobre si mesmo, toda vez que constrói algo, fiado a dezenas de entidades complementares que curam, gateiam, lembram e provam.
+O Platão é uma entidade extraída da **Athena**, um OS agêntico soberano construído sobre uma disciplina única: **anti-placebo, segura, determinística, com governança, auditável.** Na Athena, "você terminou de verdade?" não é um linter que você roda — é um reflexo que o sistema executa sobre si mesmo, toda vez que constrói algo, ligado a dezenas de entidades complementares que curam, gateiam, lembram e provam.
 
 O que você tem em mãos é cerca de **1% disso** — a metade determinística de uma dessas entidades, doada por conta própria. Abrimos porque o modo de falha que ela previne — trabalho confiante, incompleto, não-verificado — é problema de todo mundo agora que agentes escrevem tanto do nosso código, e esta peça é genuinamente útil sozinha.
 
@@ -296,9 +297,9 @@ Por ora: isto se sustenta sozinho. Use.
 
 ---
 
-A Athena é essa disciplina como *sistema*, não como ferramenta: toda ação passa por um **portão de decisão** antes de correr, um **sandbox** que reverte antes de qualquer coisa destrutiva, e um **ledger à prova de adulteração** que regista o que aconteceu; a memória só é escrita por um guardião que faz hash de cada registo; o raciocínio é cloud-first mas os **dados ficam soberanos** — nada sai sem passar pelos portões de egress. O Platão é ~1% disso — o órgão que responde *"isto está mesmo pronto — fiado, real, e incapaz de fingir sucesso?"* — recortado para correr sozinho, no laço do teu agente, sem amarras ao resto.
+A Athena é essa disciplina como *sistema*, não como ferramenta: toda ação passa por um **portão de decisão** antes de rodar, um **sandbox** que reverte antes de qualquer coisa destrutiva, e um **ledger à prova de adulteração** que registra o que aconteceu; a memória só é escrita por um guardião que faz hash de cada registro; o raciocínio é cloud-first mas os **dados ficam soberanos** — nada sai sem passar pelos portões de egress. O Platão é ~1% disso — o órgão que responde *"isto está mesmo pronto — ligado, real, e incapaz de fingir sucesso?"* — recortado para rodar sozinho, no laço do seu agente, sem amarras ao resto.
 
-**O ponto não é o linter; é o reflexo** — um agente que se recusa a dizer que terminou quando não terminou. Se um verificador $0, nunca-errado desse tipo te é útil, esse reflexo é a Athena inteira: governada, auditável, autodefensiva. Esta ferramenta é a porta; a Athena é a sala.
+**O ponto não é o linter; é o reflexo** — um agente que se recusa a dizer que terminou quando não terminou. Se um verificador $0, nunca-errado desse tipo é útil para você, esse reflexo é a Athena inteira: governada, auditável, autodefensiva. Esta ferramenta é a porta; a Athena é a sala.
 
 ## Licença
 
