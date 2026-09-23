@@ -12,6 +12,7 @@ from pathlib import Path
 
 from platao import treesitter
 from platao.checks import PROJECT_REGISTRY, REGISTRY
+from platao.config import Config
 from platao.context import FileContext
 from platao.finding import Finding, Severity, fails_gate
 from platao.polyglot import POLYGLOT_EXTS
@@ -174,9 +175,12 @@ def check_payload(paths, *, root: Path | str | None = None, fail_on: str = "high
     Returns:
         ``{"ok": bool, "fail_on": str, "summary": {"high": int, "medium": int, "low": int},
         "findings": [<finding dict>, ...]}`` — ``ok`` is true when nothing at or above ``fail_on``
-        was found.
+        was found. Checks disabled in ``<root>/.platao.json`` are dropped, exactly as the CLI does.
     """
     findings = analyze_paths(paths, root=root, enabled=enabled)
+    disabled = Config.load(Path(root) if root else Path.cwd()).disable
+    if disabled:
+        findings = [f for f in findings if f.check_id not in disabled]
     counts = {sev.value: sum(1 for f in findings if f.severity is sev) for sev in Severity}
     return {
         "ok": not fails_gate((f.severity for f in findings), fail_on),
