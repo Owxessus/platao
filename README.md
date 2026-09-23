@@ -29,7 +29,7 @@ Platão isn't a linter you run on finished code — it's the check an agent runs
 <img src="assets/demo.svg" alt="Platão — a real run: type the command, see the real output" width="640">
 
 ```bash
-npm install -g platao          # or: pipx install platao
+pipx install "platao[mcp,deep] @ git+https://github.com/Owxessus/platao"   # not on PyPI yet
 platao check src/service.py    # review one file your AI just wrote
 platao sweep .                 # scan the whole repo for placebo tests & dead code
 ```
@@ -83,14 +83,14 @@ Platão's **deep** checks — the placebo/completeness analysis and the import g
 That regex layer is deliberately shallow. For **deep** multi-language analysis there's an optional tree-sitter layer:
 
 ```bash
-pip install 'platao[deep]'   # adds real ASTs for JS, TS, Go, Ruby, Java, Rust, PHP, C#, …
+pip install 'platao[deep] @ git+https://github.com/Owxessus/platao'   # real ASTs for JS, TS, Go, Ruby, Java, Rust, PHP, C#, …
 ```
 
 With it installed, deep structural checks run on those languages too — `not_stub` (an action-named function with a genuinely empty body, told apart from an honest abstract declaration) and `empty_test` (a JS/TS `it(...)`/`test(...)` whose body asserts nothing — the fake-test smell). The core stays zero-dependency without the extra; the polyglot regex layer still covers those files. More deep checks land as tree-sitter queries beside these. Today: deep in Python (always) and in the deep-layer languages (with the extra), broad everywhere.
 
 ## The questions
 
-Every question is either `CODE` (deterministic, free) or `JUDGMENT` (needs an LLM). **All of them are opt-in** — enable the packs you want, disable the ones you don't, add your own. Defaults are the high-signal, low-false-positive set — calibrated against mature real-world repos (`requests`, `flask`, `click`, …) so it stays quiet on idiomatic code and loud on genuine defects.
+Every question is either `CODE` (deterministic, free) or `JUDGMENT` (needs an LLM). **Every deterministic check runs by default; switch any one off by id** in [`.platao.json`](#config-file) (question packs and your own questions are planned). Defaults are the high-signal, low-false-positive set — calibrated against mature real-world repos (`requests`, `flask`, `click`, …) so it stays quiet on idiomatic code and loud on genuine defects.
 
 > **What ships today vs. the roadmap.** The list below is the full checklist Platão is built around. The checks **live in this release** are exactly what `platao list-checks` prints — today the connected / placebo / robustness / hygiene core (`not_stub`, `dangling_import`, `unwired`, `swallowed_error`, `dangerous_dynamic`, `mutable_default`, `hardcoded_secret`, `fail_closed`, `not_god_function`, `debt_tracked`, `debug_leftover`, and the placebo-test checks), the deep `not_stub`/`empty_test` for other languages via `platao[deep]`, plus the nine `momo` judgment questions. The rest is the roadmap — each lands under the same proof gate (see [Contributing](#contributing--the-rigid-gate)). **Run `platao list-checks` for the authoritative set in your version.**
 
@@ -137,13 +137,14 @@ Every question is either `CODE` (deterministic, free) or `JUDGMENT` (needs an LL
 - `momo_scrutiny` — **the flagship.** *Would a skeptical senior approve this, or dismantle it in 30 seconds? What do they attack first?*
 - `real_or_mock` — is it real, or a mock with a real face?
 - `edge_cases` — empty / null / boundary / large input / unicode / concurrent covered?
+- `failure_path` — is the failure path handled, not just the happy one?
 - `single_responsibility` — one responsibility, or a god-function forming?
 - `reuse_over_create` — did you confirm nothing already does this (no duplication)?
 - `abstraction_earns_keep` — does the abstraction have more than one caller?
 - `simpler_version` — is there a simpler version that solves it the same?
 - `hidden_magic` — hidden coupling/magic nobody can explain?
 
-**Add your own in one line** (see [Configuration](#configuration)). Import your existing `CLAUDE.md` / `AGENTS.md` and Platão turns your house rules into questions.
+**Planned:** add your own question in one line, and import your existing `CLAUDE.md` / `AGENTS.md` so your house rules become questions (see [Configuration](#configuration)).
 
 ---
 
@@ -162,7 +163,7 @@ You choose how it plugs in, and you can route by complexity — deterministic-on
 The **MCP server** is the point. It exposes two tools — `platao_check` (audit a file or directory) and `platao_list_checks` — so any MCP-capable agent verifies its own work before claiming completion, no editor integration required. Install the extra and run it:
 
 ```bash
-pip install 'platao[mcp]'
+pip install 'platao[mcp] @ git+https://github.com/Owxessus/platao'
 platao mcp        # stdio server; point your agent at it
 ```
 
@@ -176,7 +177,7 @@ There's a complete, runnable **build-and-audit agent** in [`examples/agent/`](ex
 
 ### The token model (measured, reproducible)
 
-A judgment review sends: a short preamble + the file under review (capped at **12,000 characters** — this caps your worst-case cost) + the enabled judgment questions. Measured on a representative ~440-line file with 12 questions enabled:
+A judgment review sends: a short preamble + the file under review (capped at **12,000 characters** — this caps your worst-case cost) + the enabled judgment questions. Measured on a representative ~440-line file with 12 questions enabled (9 ship today, so the real output is a little smaller):
 
 - **Input:** ≈ 3,500 tokens
 - **Output:** ≈ 750 tokens (one line per question)
@@ -227,7 +228,7 @@ Judgment is **advisory**: its findings are shown but **do not drive the exit cod
 Turn specific checks off with a `.platao.json` at your repo root (zero-dependency, real today). No file = nothing disabled:
 
 ```json
-{ "disable": ["debt_tracked", "ui_marble_tokens"] }
+{ "disable": ["debt_tracked", "not_god_function"] }
 ```
 
 When sweeping a tree, Platão walks past vendored and generated directories by default — `node_modules`, `.venv`/`venv`, `site-packages`, `build`/`dist`, the caches, and vendored-code dirs (`vendor`, `third_party`, `thirdparty`, …). Code you didn't write isn't yours to audit. (Point the tool straight at one of those dirs to override.)
@@ -251,7 +252,7 @@ Platão is the interrogator; its siblings are extra eyes it grows when they're p
 - **[Socrates](https://github.com/Owxessus/socrates)** (Python — imported in-process). On a whole-repo `sweep`, Platão's `capabilities_proven` question lights up and asks Socrates: which public capabilities does no test name? Only Socrates' *static* capability-proof is delegated — its dynamic mutation testing (`socrates mutate`) you run explicitly, so Platão stays "never executes your code".
 
   ```bash
-  pipx install platao          # then, in the same environment:
+  pipx install "platao @ git+https://github.com/Owxessus/platao"   # then, in the same environment:
   pip install socrates-oss     # sweep now includes capabilities_proven
   ```
 

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `--fail-on never` exited 1 on every run (and the MCP `ok` was always false); it now never fails.
+- Auditing from inside a package directory (`cd pkg && platao check .`) looped forever.
+- An unrelated `socrates` package (PyPI's static-site generator) crashed every `sweep`.
+- The MCP payload ignored `.platao.json`; it now drops disabled checks like the CLI.
+- `install-hook` wrote a hook git never runs under `core.hooksPath` or in a linked worktree.
+- The GitHub Action installed `platao` from PyPI, where it is not published; it now installs its own checkout.
+- `debt_tracked` flagged the Portuguese/Spanish word "todo" ("every/all"); non-caps markers now need `todo:`.
+- Pinned `mcp<2` (2.x removed `FastMCP`, so `platao mcp` failed to import) and
+  `tree-sitter-language-pack<1` (1.x downloads grammars on first use, breaking the offline promise).
+
 ## [0.1.0] — first public cut
 
 The completeness auditor, carved out of Athena to run standalone.
@@ -20,7 +32,7 @@ The completeness auditor, carved out of Athena to run standalone.
   - `hardcoded_secret` — a literal that looks like a real credential
   - `dangling_import` — a `from .x import y` whose target doesn't exist (whole-repo pass)
   - `unwired` — a module nobody imports
-  - `god_function` / `not_god_function` — a function past the size/stage threshold
+  - `not_god_function` — a function past the size/stage threshold
   - `empty_test` / placebo-test detection — a test that runs the target and asserts nothing
   - `debt_tracked` — a `TODO` with no owner or issue reference
 - **`platao check <file>`** — review a single file (the diff an agent just wrote).

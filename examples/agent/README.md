@@ -33,7 +33,7 @@ on the first run.
 Install the two tools so `.mcp.json` can launch them:
 
 ```bash
-pipx install 'platao[mcp]'     # or: pip install 'platao[mcp]'
+pipx install 'platao[mcp] @ git+https://github.com/Owxessus/platao'   # not on PyPI yet
 npm install -g basanos
 ```
 
@@ -47,7 +47,7 @@ claude
 
 > **Not using Claude Code?** The servers are plain MCP over stdio, so any MCP client works. Register
 > them by hand with `claude mcp add platao -- platao mcp` and `claude mcp add basanos -- basanos mcp`,
-> or from source with `... -- python -c "from platao.mcp_server import main; main()"` (with `src/` on
+> or from source with `... -- python -c "from platao.mcp_server import run; run()"` (with `src/` on
 > `PYTHONPATH`) and `... -- node dist/cli.js mcp`.
 
 ---
@@ -66,11 +66,11 @@ platao sweep demo/pkg
 ```
 
 ```
-Platão — pkg/service.py
+Platão — demo/pkg/service.py
   ⚠ [dangling_import]  `from pkg.db import connect` — 'connect' is not defined or re-exported in module 'pkg.db'
   ⚠ [not_stub]  'process_order' just returns success without doing the work
   • [swallowed_error]  except Exception swallows the error silently (body is just `pass`) — no log, no re-raise
-  · [unwired]  module 'pkg.service' is imported by nobody in the scanned tree — dead code, or public API (eyeball it)
+  · [unwired]  module 'pkg.service' is imported by nobody in the scanned tree — dead code, or public API used only by downstream consumers (eyeball it)
   · [debt_tracked]  untracked TODO — add an owner or issue ref, e.g. TODO(#123)
 
 2 critical · 1 concern · 2 note
