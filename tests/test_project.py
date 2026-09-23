@@ -22,6 +22,42 @@ def findings_by_id(root: Path) -> dict[str, list[str]]:
     return out
 
 
+# ── module naming ─────────────────────────────────────────────────────────────────
+
+def _finishes(fn, seconds: float = 10.0):
+    """Run ``fn`` in a daemon thread; return ``(finished, result)`` instead of hanging the suite."""
+    import threading
+
+    box: dict[str, object] = {}
+    worker = threading.Thread(target=lambda: box.setdefault("r", fn()), daemon=True)
+    worker.start()
+    worker.join(seconds)
+    return not worker.is_alive(), box.get("r")
+
+
+def test_auditing_from_inside_a_package_terminates(tmp_path: Path, monkeypatch):
+    # `cd pkg && platao check .` — the relative walk up from `a.py` reached `Path(".")`, whose parent
+    # is itself, and looped forever because `./__init__.py` exists. It must finish, with real names.
+    from platao.project import module_name_of
+
+    _pkg(tmp_path, {"pkg/__init__.py": "from pkg.a import f\n", "pkg/a.py": "def f():\n    return 1\n"})
+    monkeypatch.chdir(tmp_path / "pkg")
+    finished, name = _finishes(lambda: module_name_of(Path("a.py")))
+    assert finished, "module_name_of hung on a relative path inside a package"
+    assert name == "pkg.a"
+    finished, findings = _finishes(lambda: analyze_paths([Path(".")]))
+    assert finished, "analyze_paths hung when run from inside a package"
+    assert findings == []  # `pkg.a` resolves: imported by the __init__, so neither unwired nor dangling
+
+
+def test_module_name_of_absolute_path_is_unchanged(tmp_path: Path):  # negative control
+    from platao.project import module_name_of
+
+    _pkg(tmp_path, {"pkg/__init__.py": "", "pkg/sub/__init__.py": "", "pkg/sub/m.py": ""})
+    assert module_name_of(tmp_path / "pkg" / "sub" / "m.py") == "pkg.sub.m"
+    assert module_name_of(tmp_path / "pkg" / "sub" / "__init__.py") == "pkg.sub"
+
+
 # ── unwired ───────────────────────────────────────────────────────────────────────
 
 def test_unwired__island_is_caught_used_and_entrypoint_are_not(tmp_path: Path):

@@ -26,12 +26,17 @@ def module_name_of(path: Path) -> str | None:
     Found by walking up while a ``__init__.py`` exists — so the import root is the package boundary,
     not the repo root, and src-layouts resolve correctly. ``None`` for a package ``__init__`` sitting
     at the import root (nothing above it), which has no importable name of its own.
+
+    The path is resolved first: walking a *relative* path ends at ``Path(".")``, whose parent is
+    itself — so from inside a package (``cd pkg && platao check .``) the walk never ended, and the
+    directory had no name to give the module anyway. The loop also stops at the filesystem root.
     """
+    path = path.resolve()
     parts: list[str] = []
     if path.stem != "__init__":
         parts.append(path.stem)
     parent = path.parent
-    while (parent / "__init__.py").exists():
+    while (parent / "__init__.py").exists() and parent != parent.parent:
         parts.append(parent.name)
         parent = parent.parent
     if not parts:
