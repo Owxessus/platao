@@ -26,7 +26,10 @@ dependencies = []   # zero runtime dependencies — stdlib only, fully understoo
 # only the MCP server adapter needs this; the core stays zero-dep. <2: mcp 2.x removed
 # `mcp.server.fastmcp` (renamed MCPServer), so the server did not even import on a fresh install.
 mcp = ["mcp>=1.2,<2"]
-deep = ["tree-sitter-language-pack>=0.7"]   # deep multi-language checks; core stays zero-dep without it
+# deep multi-language checks; core stays zero-dep without it. <1: from 1.0 the pack no longer
+# bundles grammars and downloads each parser from the network on first use, which breaks the
+# "offline, no network" promise (and offline it silently yielded no deep findings at all).
+deep = ["tree-sitter-language-pack>=0.7,<1"]
 
 [project.urls]
 Homepage = "https://github.com/Owxessus/platao"

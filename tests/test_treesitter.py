@@ -73,6 +73,33 @@ def test_non_empty_ruby_is_silent():
     assert "not_stub" not in ids("def save\n  persist!\nend\n", "app.rb")
 
 
+# ── offline guarantee ─────────────────────────────────────────────────────────────
+
+_OFFLINE_PROBE = """
+import sys
+import tree_sitter_language_pack as pack
+if hasattr(pack, "configure"):  # 1.x: fetches parsers on demand — start from an empty cache
+    pack.configure(pack.PackConfig(cache_dir=sys.argv[1]))
+from platao.treesitter import scan
+print(",".join(sorted({f.check_id for f in scan("app.ts", "function saveUser() {}")})))
+"""
+
+
+def test_deep_layer_works_without_network(tmp_path):
+    # The deep layer is sold as offline. tree-sitter-language-pack >= 1.0 downloads each grammar on
+    # first use; with no network it raised, and the layer silently returned no findings at all.
+    import os
+    import subprocess
+    import sys
+
+    dead = "http://127.0.0.1:9"  # nothing listens here: any download attempt fails fast
+    env = {**os.environ, "HTTPS_PROXY": dead, "HTTP_PROXY": dead, "https_proxy": dead,
+           "http_proxy": dead, "ALL_PROXY": dead}
+    out = subprocess.run([sys.executable, "-c", _OFFLINE_PROBE, str(tmp_path)], env=env,
+                         capture_output=True, text=True, timeout=110)
+    assert "not_stub" in out.stdout.strip().split(","), out.stdout + out.stderr
+
+
 # ── unsupported / robustness ──────────────────────────────────────────────────────
 
 def test_unsupported_extension_returns_empty():
