@@ -1,4 +1,4 @@
-"""Shared patterns for the security checks — kept in one place so the Python and polyglot layers agree.
+"""Shared patterns for the security and debt checks — in one place so the Python and polyglot layers agree.
 
 A hardcoded secret is one of the highest-signal defects there is, and it shows up the same way in every
 language: a secret-ish name assigned a string literal. The one thing that keeps this from crying wolf is
@@ -36,6 +36,17 @@ SECRET_ASSIGN = re.compile(
     r"""access[_-]?token|refresh[_-]?token|token|private[_-]?key|client[_-]?secret|credential)\b"""
     rf"""\s*[:=]\s*(['"])([^'"\s]{{{MIN_SECRET_LEN},}})\2"""
 )
+
+
+def is_debt_marker(word: str, after: str) -> bool:
+    """Is a matched ``TODO``/``FIXME``/``XXX``/``HACK`` really a debt marker, not a plain word?
+
+    Shared by the Python and polyglot ``debt_tracked``. The all-caps form always counts; any other
+    casing only in the conventional ``todo:`` form. "Todo"/"todo" is an everyday word in Portuguese
+    and Spanish ("every"/"all") — ``# Todo arquivo de teste roda offline`` is a sentence, not a debt,
+    and case-insensitive matching flagged every such comment.
+    """
+    return word.isupper() or after.lstrip().startswith(":")
 
 
 _SCOPE_ID = re.compile(r"[a-z][a-z0-9]*(\.[a-z0-9]+)+")  # dotted lowercase: `variable.predefined`

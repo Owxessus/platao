@@ -71,6 +71,14 @@ def test_todo_with_owner_is_silent():
     assert "debt_tracked" not in ids("// TODO(alice) fix later\nconst x = 1;")
 
 
+def test_portuguese_todo_word_in_js_comment_is_silent():  # "todo" = "every/all" in pt/es
+    assert "debt_tracked" not in ids("// Todo o estado vem do servidor\nconst x = 1;")
+
+
+def test_lowercase_todo_with_colon_in_js_is_caught():
+    assert "debt_tracked" in ids("// todo: wire the retry\nconst x = 1;")
+
+
 # ── comment / string masking (regex FP guards, from vite) ─────────────────────────
 
 def test_eval_in_line_comment_is_silent():  # vite: `// Most eval() calls are in this format`

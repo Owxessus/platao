@@ -31,6 +31,16 @@ def test_debt_tracked__paren_issue_is_silent():
     assert "debt_tracked" not in ids("x = 1  # TODO(#42): fix this\n")
 
 
+def test_debt_tracked__portuguese_todo_word_is_silent():  # FP guard — "todo" means "every/all" in pt/es
+    assert "debt_tracked" not in ids("x = 1  # Todo arquivo de teste roda offline\n")
+    assert "debt_tracked" not in ids("# todo o resto fica como estava\nx = 1\n")
+
+
+def test_debt_tracked__lowercase_marker_with_colon_is_caught():  # the conventional non-caps form
+    assert "debt_tracked" in ids("x = 1  # todo: fix this later\n")
+    assert "debt_tracked" in ids("x = 1  # Fixme: broken\n")
+
+
 # ── debug_leftover ────────────────────────────────────────────────────────────────
 
 def test_debug_leftover__breakpoint_is_caught():

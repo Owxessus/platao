@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 from platao.context import _looks_like_test
 from platao.finding import Finding, Severity
-from platao.patterns import PLACEHOLDER, SECRET_ASSIGN, looks_like_secret_value
+from platao.patterns import PLACEHOLDER, SECRET_ASSIGN, is_debt_marker, looks_like_secret_value
 
 # Non-Python code files this layer scans. Python goes through the deep AST checks, never here.
 POLYGLOT_EXTS = frozenset({
@@ -183,6 +183,8 @@ def scan(path: str, source: str) -> list[Finding]:
         line_end = source.find("\n", m.start())
         line_end = len(source) if line_end < 0 else line_end
         rest = source[m.end():line_end]
+        if not is_debt_marker(m.group(1), rest):  # "// Todo o estado…" — a pt/es word, not a debt
+            continue
         if _ISSUE_REF.search(rest):  # a #123 later on the line
             continue
         marker = m.group(1).upper()

@@ -17,6 +17,7 @@ from platao.checks import register
 from platao.checks._ast import dotted_name
 from platao.context import FileContext
 from platao.finding import Severity
+from platao.patterns import is_debt_marker
 
 # A debt marker at the start of a comment, optionally with a `(owner/id)`.
 _DEBT = re.compile(r"^#\s*(TODO|FIXME|XXX|HACK)\b(\([^)]*\))?", re.IGNORECASE)
@@ -46,7 +47,10 @@ def debt_tracked(ctx: FileContext) -> Iterable[tuple[int, str]]:
             continue
         if match.group(2):  # has a (owner/id)
             continue
-        if _ISSUE_REF.search(tok.string[match.end():]):  # a #123 later in the comment
+        rest = tok.string.strip()[match.end():]
+        if not is_debt_marker(match.group(1), rest):  # "# Todo arquivo…" — a pt/es word, not a debt
+            continue
+        if _ISSUE_REF.search(rest):  # a #123 later in the comment
             continue
         marker = match.group(1).upper()
         yield (tok.start[0], f"untracked {marker} — add an owner or issue ref, e.g. {marker}(#123)")
