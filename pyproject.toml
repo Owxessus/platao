@@ -23,7 +23,9 @@ classifiers = [
 dependencies = []   # zero runtime dependencies — stdlib only, fully understood
 
 [project.optional-dependencies]
-mcp = ["mcp>=1.2"]   # only the MCP server adapter needs this; the core stays zero-dep
+# only the MCP server adapter needs this; the core stays zero-dep. <2: mcp 2.x removed
+# `mcp.server.fastmcp` (renamed MCPServer), so the server did not even import on a fresh install.
+mcp = ["mcp>=1.2,<2"]
 deep = ["tree-sitter-language-pack>=0.7"]   # deep multi-language checks; core stays zero-dep without it
 
 [project.urls]
