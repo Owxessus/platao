@@ -1,6 +1,6 @@
 # Platão
 
-<img src="assets/banner.png" alt="Platão — extracted from Athena, the sovereign agentic OS">
+<img src="assets/banner.png" alt="Platão — a deterministic completion auditor for agent-written code">
 
 [![ci](https://github.com/Owxessus/platao/actions/workflows/ci.yml/badge.svg)](https://github.com/Owxessus/platao/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 
@@ -186,20 +186,18 @@ A judgment review sends: a short preamble + the file under review (capped at **1
 
 ### Ready reckoner (~10 tiers)
 
-Prices as of **2026-06-24**; LLM pricing drifts — **verify current rates at your provider.** Anthropic rows are exact from the official table; third-party rows are approximate and marked ≈.
+Prices from the **OpenRouter catalog on 2026-09-23**; LLM pricing drifts — **verify current rates at your provider.**
 
 | Tier | Model | $/1M in | $/1M out | **Cost / review** | 1,000 reviews |
 |---|---|---|---|---|---|
 | Local | Ollama (gemma/qwen/llama) | — | — | **$0** (your hardware) | $0 |
-| Ultra-cheap | DeepSeek-V3.2 ≈ | ≈0.28 | ≈0.42 | ≈ $0.0013 | ≈ $1.3 |
-| Cheap | Gemini Flash-class ≈ | ≈0.10 | ≈0.40 | ≈ $0.0007 | ≈ $0.7 |
-| Cheap | GPT-mini-class ≈ | ≈0.15 | ≈0.60 | ≈ $0.0010 | ≈ $1.0 |
-| Budget | **Claude Haiku 4.5** | 1.00 | 5.00 | **$0.0073** | $7.3 |
-| Mid | Qwen/Llama-70B hosted ≈ | ≈0.40 | ≈0.40 | ≈ $0.0017 | ≈ $1.7 |
-| Balanced | **Claude Sonnet 5** (intro) | 2.00 | 10.00 | **$0.0145** | $14.5 |
-| Balanced | **Claude Sonnet 5** (std) | 3.00 | 15.00 | **$0.0218** | $21.8 |
-| Premium | **Claude Opus 5** | 5.00 | 25.00 | **$0.0363** | $36.3 |
-| Top | **Claude Fable 5** | 10.00 | 50.00 | **$0.0725** | $72.5 |
+| Ultra-cheap | **DeepSeek V4.1 Flash** (`deepseek/deepseek-v4.1-flash`) | 0.15 | 0.60 | **$0.0010** | $1.0 |
+| Cheap | **GPT-6 Luna** (`openai/gpt-6-luna`) | 0.10 | 0.50 | **$0.0007** | $0.7 |
+| Cheap | **Gemini 3.8 Flash** (`google/gemini-3.8-flash`) | 0.75 | 3.75 | **$0.0054** | $5.4 |
+| Budget | **Claude Haiku 4.5** (`anthropic/claude-haiku-4.5`) | 1.00 | 5.00 | **$0.0072** | $7.2 |
+| Balanced | **Claude Sonnet 5** (`anthropic/claude-sonnet-5`) | 2.00 | 10.00 | **$0.0145** | $14.5 |
+| Premium | **Claude Opus 5.5** (`anthropic/claude-opus-5.5`) | 4.00 | 20.00 | **$0.0290** | $29.0 |
+| Top | **Claude Fable 5.1** (`anthropic/claude-fable-5.1`) | 10.00 | 50.00 | **$0.0725** | $72.5 |
 
 Notes for total honesty:
 - **Caching doesn't help here.** The file body changes every review; only the small preamble+questions (~500 tokens) is stable, below the cache floor. No cache discount claimed.
@@ -215,9 +213,9 @@ Notes for total honesty:
 The skeptical-senior layer is off until you ask for it and point it at a model. It's BYO-LLM — any OpenAI-compatible endpoint (OpenAI, OpenRouter, DeepSeek, a local Ollama):
 
 ```bash
-export PLATAO_JUDGE_MODEL=gpt-4o-mini          # your model
+export PLATAO_JUDGE_MODEL=deepseek/deepseek-v4.1-flash   # your model
 export PLATAO_JUDGE_API_KEY=sk-...             # your key — Platão reads it from the env, never stores it
-export PLATAO_JUDGE_BASE_URL=https://api.openai.com/v1   # optional; defaults to OpenAI
+export PLATAO_JUDGE_BASE_URL=https://openrouter.ai/api/v1   # optional; defaults to OpenAI (https://api.openai.com/v1)
 platao check src/service.py --judge
 ```
 
@@ -252,14 +250,14 @@ Platão is the interrogator; its siblings are extra eyes it grows when they're p
 - **[Socrates](https://github.com/Owxessus/socrates)** (Python — imported in-process). On a whole-repo `sweep`, Platão's `capabilities_proven` question lights up and asks Socrates: which public capabilities does no test name? Only Socrates' *static* capability-proof is delegated — its dynamic mutation testing (`socrates mutate`) you run explicitly, so Platão stays "never executes your code".
 
   ```bash
-  pipx install "platao @ git+https://github.com/Owxessus/platao"   # then, in the same environment:
-  pip install socrates-oss     # sweep now includes capabilities_proven
+  pipx install "platao @ git+https://github.com/Owxessus/platao"
+  pipx inject platao "socrates-oss @ git+https://github.com/Owxessus/socrates"   # sweep now includes capabilities_proven
   ```
 
 - **[Basanos](https://github.com/Owxessus/basanos)** (a Node CLI — shelled out to). If `basanos` is on your PATH, Platão's `ui_wired` question delegates to it and folds dead/stub UI controls into the report.
 
   ```bash
-  npm install -g basanos       # sweep now includes ui_wired
+  npm install -g github:Owxessus/basanos       # sweep now includes ui_wired
   ```
 
 Each stands alone; installed together, Platão gathers all three answers into one pass.
@@ -283,23 +281,11 @@ CI runs each check's proof on every PR. No proof, no merge. This isn't bureaucra
 
 Anti-placebo is a rule this project holds *itself* to. **Every check ships with a `prove_effect` + `negative_control` pair** — it must catch the real defect *and* stay silent on the honest twin, or it doesn't ship (CI enforces it). And it passes its own audit — Platão runs **clean under its own `platao sweep`** — the auditor survives its own audit.
 
-Then it was hardened on **real codebases, 10k–90k★**, across every tier — big-tech, frameworks, AI-agent projects, solo work. On that gauntlet it found real defects the test suites missed — dozens of module-level broken imports that a 67k★ project's test suite never caught (latent `ImportError`s on real code paths) — and, the harder half, it **stayed quiet where the code was good.** Every false-positive pattern it tripped on became a fix with a regression test: **15 classes of false positive eliminated** on real code. A low false-positive rate isn't a promise here — it was *built*.
+It was then tuned by running it over a range of open-source projects. Where it flagged real defects the test suites had missed, good; where it flagged good code, that pattern became a fix with a regression test. False positives still happen — when you hit one, an issue with the snippet is the most useful contribution there is.
 
 ## Where this came from
 
-Platão is one entity extracted from **Athena**, a sovereign agentic OS built on a single discipline: **anti-placebo, secure, deterministic, governed, auditable.** In Athena, "did you actually finish?" isn't a linter you run — it's a reflex the system performs on itself, every time it builds something, wired to dozens of complementary entities that heal, gate, remember, and prove.
-
-What you're holding is roughly **1% of that** — the deterministic half of one of those entities, given away on its own. We open-sourced it because the failure mode it prevents — confident, incomplete, unverified work — is everyone's problem now that agents write so much of our code, and this piece is genuinely useful standalone.
-
-The rest — the judgment orchestration, the security gates, the memory, the self-healing, the governance that decides what an agent is even allowed to do — is the part that isn't a tool. It's an architecture. If the questions in this README made you curious what it looks like when a system asks them *of itself*, that's the right instinct. More on that when it's ready.
-
-For now: this stands on its own. Use it.
-
----
-
-Athena is that discipline as a *system*, not a tool: every action passes a **decision gate** before it runs, a **sandbox** that can roll back before anything destructive, and a **tamper-evident ledger** that records what happened; memory is written only through a guardian that hashes every record; reasoning is cloud-first but the **data stays sovereign** — nothing leaves without clearing the egress gates. Platão is ~1% of it — the organ that answers *"is this actually done — wired, real, and unable to fake success?"* — carved out to run standalone, in your own agent's loop, with no strings to the rest.
-
-**The point isn't the linter; it's the reflex** — an agent that refuses to say it finished when it didn't. If a $0, never-wrong verifier of that kind is useful to you, that reflex is the whole of Athena: governed, auditable, self-defending. This tool is the doorway; Athena is the room.
+Platão was extracted from **Athena**, a personal AI agent project, where it runs over the agent's own changes before they are merged: "did you actually finish?" is asked of every diff, deterministically and at no cost. It is released on its own because the failure it catches — confident, incomplete, unverified work — shows up wherever agents write code. It has no dependency on the rest of Athena.
 
 ## License
 

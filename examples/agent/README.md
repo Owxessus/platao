@@ -34,7 +34,7 @@ Install the two tools so `.mcp.json` can launch them:
 
 ```bash
 pipx install 'platao[mcp] @ git+https://github.com/Owxessus/platao'   # not on PyPI yet
-npm install -g basanos
+npm install -g github:Owxessus/basanos   # not on npm yet
 ```
 
 Then, from **this directory** (`examples/agent/`), start Claude Code — it reads `.mcp.json` and

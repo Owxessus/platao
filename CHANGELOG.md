@@ -54,6 +54,6 @@ The completeness auditor, carved out of Athena to run standalone.
 ### Hardened
 
 - Every check ships with a `prove_effect` + `negative_control` pair; CI enforces both.
-- Tuned on real codebases (10k–90k★): **15 classes of false positive eliminated**, each
+- Tuned on real open-source codebases: each false-positive pattern found there was fixed
   with a regression test. Notably robust handling of stdlib/compiled-submodule/generated
   names so `dangling_import` doesn't fire on legitimate optional or Cython imports.

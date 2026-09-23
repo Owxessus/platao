@@ -1,6 +1,6 @@
 # Platão
 
-<img src="assets/banner.png" alt="Platão — extracted from Athena, the sovereign agentic OS">
+<img src="assets/banner.png" alt="Platão — um auditor determinístico de completude para código escrito por agentes">
 
 [![ci](https://github.com/Owxessus/platao/actions/workflows/ci.yml/badge.svg)](https://github.com/Owxessus/platao/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 
@@ -186,20 +186,18 @@ Um review de juízo envia: um preâmbulo curto + o arquivo em revisão (limitado
 
 ### Tabela de referência (~10 tiers)
 
-Preços de **2026-06-24**; preço de LLM deriva — **confirme as taxas atuais no seu provedor.** As linhas Anthropic são exatas (tabela oficial); as de terceiros são aproximadas e marcadas ≈.
+Preços do **catálogo da OpenRouter em 2026-09-23**; preço de LLM muda — **confirme as taxas atuais no seu provedor.**
 
 | Tier | Modelo | $/1M in | $/1M out | **Custo / review** | 1.000 reviews |
 |---|---|---|---|---|---|
 | Local | Ollama (gemma/qwen/llama) | — | — | **$0** (seu hardware) | $0 |
-| Ultra-barato | DeepSeek-V3.2 ≈ | ≈0,28 | ≈0,42 | ≈ $0,0013 | ≈ $1,3 |
-| Barato | Gemini Flash-class ≈ | ≈0,10 | ≈0,40 | ≈ $0,0007 | ≈ $0,7 |
-| Barato | GPT-mini-class ≈ | ≈0,15 | ≈0,60 | ≈ $0,0010 | ≈ $1,0 |
-| Econômico | **Claude Haiku 4.5** | 1,00 | 5,00 | **$0,0073** | $7,3 |
-| Médio | Qwen/Llama-70B hospedado ≈ | ≈0,40 | ≈0,40 | ≈ $0,0017 | ≈ $1,7 |
-| Equilibrado | **Claude Sonnet 5** (intro) | 2,00 | 10,00 | **$0,0145** | $14,5 |
-| Equilibrado | **Claude Sonnet 5** (padrão) | 3,00 | 15,00 | **$0,0218** | $21,8 |
-| Premium | **Claude Opus 5** | 5,00 | 25,00 | **$0,0363** | $36,3 |
-| Topo | **Claude Fable 5** | 10,00 | 50,00 | **$0,0725** | $72,5 |
+| Ultra-barato | **DeepSeek V4.1 Flash** (`deepseek/deepseek-v4.1-flash`) | 0,15 | 0,60 | **$0,0010** | $1,0 |
+| Barato | **GPT-6 Luna** (`openai/gpt-6-luna`) | 0,10 | 0,50 | **$0,0007** | $0,7 |
+| Barato | **Gemini 3.8 Flash** (`google/gemini-3.8-flash`) | 0,75 | 3,75 | **$0,0054** | $5,4 |
+| Econômico | **Claude Haiku 4.5** (`anthropic/claude-haiku-4.5`) | 1,00 | 5,00 | **$0,0072** | $7,2 |
+| Equilibrado | **Claude Sonnet 5** (`anthropic/claude-sonnet-5`) | 2,00 | 10,00 | **$0,0145** | $14,5 |
+| Premium | **Claude Opus 5.5** (`anthropic/claude-opus-5.5`) | 4,00 | 20,00 | **$0,0290** | $29,0 |
+| Topo | **Claude Fable 5.1** (`anthropic/claude-fable-5.1`) | 10,00 | 50,00 | **$0,0725** | $72,5 |
 
 Notas de total honestidade:
 - **Cache não ajuda aqui.** O corpo do arquivo muda a cada review; só o preâmbulo+perguntas (~500 tokens) é estável, abaixo do piso de cache. Nenhum desconto de cache alegado.
@@ -215,9 +213,9 @@ Notas de total honestidade:
 A camada do sênior cético fica desligada até você pedir e apontar um modelo. É BYO-LLM — qualquer endpoint compatível com OpenAI (OpenAI, OpenRouter, DeepSeek, um Ollama local):
 
 ```bash
-export PLATAO_JUDGE_MODEL=gpt-4o-mini          # seu modelo
-export PLATAO_JUDGE_API_KEY=sk-...             # sua chave — o Platão lê do env, nunca armazena
-export PLATAO_JUDGE_BASE_URL=https://api.openai.com/v1   # opcional; default é OpenAI
+export PLATAO_JUDGE_MODEL=deepseek/deepseek-v4.1-flash   # seu modelo
+export PLATAO_JUDGE_API_KEY=sk-...             # sua chave — o Platão lê do ambiente, nunca armazena
+export PLATAO_JUDGE_BASE_URL=https://openrouter.ai/api/v1   # opcional; o padrão é a OpenAI (https://api.openai.com/v1)
 platao check src/service.py --judge
 ```
 
@@ -252,14 +250,14 @@ O Platão é o interrogador; os irmãos são olhos extras que ele ganha quando e
 - **[Socrates](https://github.com/Owxessus/socrates)** (Python — importado in-process). Num `sweep` do repo inteiro, a pergunta `capabilities_proven` acende e pergunta ao Socrates: quais capacidades públicas nenhum teste nomeia? Só a capability-proof *estática* dele é delegada — o mutation testing dinâmico (`socrates mutate`) você roda explicitamente, então o Platão continua "nunca executa o seu código".
 
   ```bash
-  pipx install "platao @ git+https://github.com/Owxessus/platao"   # depois, no mesmo ambiente:
-  pip install socrates-oss     # o sweep passa a incluir capabilities_proven
+  pipx install "platao @ git+https://github.com/Owxessus/platao"
+  pipx inject platao "socrates-oss @ git+https://github.com/Owxessus/socrates"   # o sweep passa a incluir capabilities_proven
   ```
 
 - **[Basanos](https://github.com/Owxessus/basanos)** (um CLI Node — chamado por subprocess). Se o `basanos` estiver no PATH, a pergunta `ui_wired` delega a ele e inclui no relatório os controles de UI mortos/stub.
 
   ```bash
-  npm install -g basanos       # o sweep passa a incluir ui_wired
+  npm install -g github:Owxessus/basanos       # o sweep passa a incluir ui_wired
   ```
 
 Cada um sozinho; instalados juntos, o Platão reúne as três respostas numa passada só.
@@ -283,23 +281,11 @@ O CI roda a prova de cada verificação em todo PR. Sem prova, sem merge. Não �
 
 Anti-placebo é uma regra que este projeto aplica a *si mesmo*. **Cada check vem com um par `prove_effect` + `negative_control`** — tem de pegar o defeito real *e* ficar calado no gêmeo honesto, senão não entra (o CI cobra). E passa na própria auditoria — o Platão **passa limpo no próprio `platao sweep`** — o auditor sobrevive à própria auditoria.
 
-Depois foi endurecido em **código real, 10k–90k★**, em todos os tiers — big-tech, frameworks, projetos de IA-agente, trabalho solo. Nesse teste achou defeitos reais que as suítes não pegaram — dezenas de imports quebrados no nível do módulo que a suíte de um projeto de 67k★ nunca pegou (`ImportError`s latentes em caminhos reais) — e, a metade mais difícil, **ficou calado onde o código era bom.** Cada padrão de falso-positivo em que tropeçou virou uma correção com teste de regressão: **15 classes de falso-positivo eliminadas** em código real. Baixo FP não é promessa aqui — foi *construído*.
+Depois foi ajustado rodando sobre vários projetos de código aberto. Onde apontou defeitos reais que as suítes não tinham pegado, ótimo; onde apontou código bom, o padrão virou correção com teste de regressão. Falso positivo ainda acontece — quando você achar um, uma issue com o trecho é a contribuição mais útil que existe.
 
 ## De onde isto veio
 
-O Platão é uma entidade extraída da **Athena**, um OS agêntico soberano construído sobre uma disciplina única: **anti-placebo, segura, determinística, com governança, auditável.** Na Athena, "você terminou de verdade?" não é um linter que você roda — é um reflexo que o sistema executa sobre si mesmo, toda vez que constrói algo, ligado a dezenas de entidades complementares que curam, gateiam, lembram e provam.
-
-O que você tem em mãos é cerca de **1% disso** — a metade determinística de uma dessas entidades, doada por conta própria. Abrimos porque o modo de falha que ela previne — trabalho confiante, incompleto, não-verificado — é problema de todo mundo agora que agentes escrevem tanto do nosso código, e esta peça é genuinamente útil sozinha.
-
-O resto — a orquestração do juízo, os gates de segurança, a memória, a auto-cura, a governança que decide o que um agente sequer tem permissão de fazer — é a parte que não é uma ferramenta. É uma arquitetura. Se as perguntas deste README te deixaram curioso sobre como fica quando um sistema as faz *a si mesmo*, esse é o instinto certo. Mais sobre isso quando estiver pronto.
-
-Por ora: isto se sustenta sozinho. Use.
-
----
-
-A Athena é essa disciplina como *sistema*, não como ferramenta: toda ação passa por um **portão de decisão** antes de rodar, um **sandbox** que reverte antes de qualquer coisa destrutiva, e um **ledger à prova de adulteração** que registra o que aconteceu; a memória só é escrita por um guardião que faz hash de cada registro; o raciocínio é cloud-first mas os **dados ficam soberanos** — nada sai sem passar pelos portões de egress. O Platão é ~1% disso — o órgão que responde *"isto está mesmo pronto — ligado, real, e incapaz de fingir sucesso?"* — recortado para rodar sozinho, no laço do seu agente, sem amarras ao resto.
-
-**O ponto não é o linter; é o reflexo** — um agente que se recusa a dizer que terminou quando não terminou. Se um verificador $0, nunca-errado desse tipo é útil para você, esse reflexo é a Athena inteira: governada, auditável, autodefensiva. Esta ferramenta é a porta; a Athena é a sala.
+O Platão foi extraído da **Athena**, um projeto pessoal de agente de IA, onde ele roda sobre as mudanças do próprio agente antes de elas entrarem: "você terminou de verdade?" é perguntado a cada diff, de forma determinística e sem custo. Sai sozinho porque a falha que ele pega — trabalho confiante, incompleto, não verificado — aparece em todo lugar onde agentes escrevem código. Ele não depende de nada do resto da Athena.
 
 ## Licença
 
