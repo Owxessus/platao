@@ -13,7 +13,7 @@ from pathlib import Path
 from platao import treesitter
 from platao.checks import PROJECT_REGISTRY, REGISTRY
 from platao.context import FileContext
-from platao.finding import RANK, Finding, Severity
+from platao.finding import Finding, Severity, fails_gate
 from platao.polyglot import POLYGLOT_EXTS
 from platao.polyglot import scan as polyglot_scan
 from platao.project import build_index
@@ -178,9 +178,8 @@ def check_payload(paths, *, root: Path | str | None = None, fail_on: str = "high
     """
     findings = analyze_paths(paths, root=root, enabled=enabled)
     counts = {sev.value: sum(1 for f in findings if f.severity is sev) for sev in Severity}
-    worst = min((RANK[f.severity.value] for f in findings), default=99)
     return {
-        "ok": worst > RANK[fail_on],
+        "ok": not fails_gate((f.severity for f in findings), fail_on),
         "fail_on": fail_on,
         "summary": {"high": counts["high"], "medium": counts["medium"], "low": counts["low"]},
         "findings": [f.to_dict() for f in findings],

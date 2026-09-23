@@ -22,7 +22,7 @@ from pathlib import Path
 from platao import __version__
 from platao.checks import PROJECT_REGISTRY, REGISTRY
 from platao.engine import analyze_paths
-from platao.finding import RANK
+from platao.finding import fails_gate
 from platao.report import render
 
 
@@ -45,8 +45,8 @@ def _audit(args: argparse.Namespace) -> int:
         print(render(findings, color=False if args.no_color else None))
 
     # The gate is deterministic — judgment findings (an LLM's opinion) are advisory, not exit-driving.
-    worst = min((RANK[f.severity.value] for f in findings if f.category != "judgment"), default=99)
-    return 1 if worst <= RANK[args.fail_on] else 0
+    gated = (f.severity for f in findings if f.category != "judgment")
+    return 1 if fails_gate(gated, args.fail_on) else 0
 
 
 def _run_judgment(args: argparse.Namespace, root: Path):

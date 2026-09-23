@@ -7,6 +7,7 @@ CLI exit code, the MCP payload) is derived from a list of these.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 
@@ -25,6 +26,18 @@ _ORDER = {Severity.HIGH: 0, Severity.MEDIUM: 1, Severity.LOW: 2}
 # Severity threshold ranks (lower = more severe). ``"never"`` is the "nothing fails" sentinel.
 # Shared by the CLI exit code and the MCP payload so "does this pass?" means one thing everywhere.
 RANK: dict[str, int] = {"high": 0, "medium": 1, "low": 2, "never": 99}
+
+
+def fails_gate(severities: Iterable[Severity], fail_on: str) -> bool:
+    """Does any of ``severities`` reach the ``fail_on`` threshold? ``"never"`` never fails.
+
+    The one definition of the gate, used by the CLI exit code and the MCP ``ok`` flag. (Comparing
+    ranks directly made ``never`` fail on every run — even a clean one — because the "no findings"
+    default rank collided with the sentinel's.)
+    """
+    if fail_on == "never":
+        return False
+    return any(RANK[s.value] <= RANK[fail_on] for s in severities)
 
 
 @dataclass(frozen=True, slots=True)

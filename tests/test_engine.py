@@ -58,6 +58,31 @@ def test_check_payload_ok_when_clean(tmp_path: Path):
     assert payload["findings"] == []
 
 
+def test_fail_on_never_is_always_ok(tmp_path: Path):
+    # "never" is the "nothing fails" sentinel — with or without findings, `ok` must be true.
+    (tmp_path / "m.py").write_text("def execute():\n    pass\n", encoding="utf-8")  # HIGH not_stub
+    assert check_payload([tmp_path], root=tmp_path, fail_on="never")["ok"] is True
+    (tmp_path / "m.py").write_text("def parse():\n    return compute()\n", encoding="utf-8")  # clean
+    assert check_payload([tmp_path / "m.py"], root=tmp_path, fail_on="never")["ok"] is True
+
+
+def test_fail_on_low_still_fails_on_a_low_finding(tmp_path: Path):  # negative control for the sentinel
+    (tmp_path / "m.py").write_text("x = 1  # TODO later\n", encoding="utf-8")  # LOW debt_tracked
+    assert check_payload([tmp_path / "m.py"], root=tmp_path, fail_on="low")["ok"] is False
+
+
+def test_cli_fail_on_never_exits_zero(tmp_path: Path):
+    # Callers that only want the JSON (`--fail-on never`) must not see a failing exit code.
+    from platao.cli import main
+    (tmp_path / "m.py").write_text("def execute():\n    pass\n", encoding="utf-8")
+    assert main(["check", str(tmp_path), "--no-color", "--fail-on", "never", "--root", str(tmp_path)]) == 0
+    (tmp_path / "m.py").write_text("def parse():\n    return compute()\n", encoding="utf-8")
+    assert main(["check", str(tmp_path / "m.py"), "--no-color", "--fail-on", "never"]) == 0
+    # …while the default gate still fails on the HIGH one.
+    (tmp_path / "m.py").write_text("def execute():\n    pass\n", encoding="utf-8")
+    assert main(["check", str(tmp_path), "--no-color", "--root", str(tmp_path)]) == 1
+
+
 def test_vendored_dirs_are_skipped(tmp_path: Path):  # scope guard (sqlmap bundles thirdparty/)
     # Vendored external code isn't yours to audit — a `thirdparty/`/`vendor/` tree is walked past.
     (tmp_path / "app.py").write_text("def execute():\n    pass\n", encoding="utf-8")  # HIGH not_stub
