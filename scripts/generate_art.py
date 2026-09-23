@@ -7,8 +7,9 @@ The key is read from the environment and never stored or printed. Zero dependenc
     python scripts/generate_art.py             # -> assets/platao-bust.png
 
 It passes the Athena coin (assets/athena-coin.jpg) as a style reference so the palette matches:
-white Carrara marble, warm gold accents, deep navy background. Model: gemini-2.5-flash-image-preview
-("nano-banana"), ~US$0.04 per image — a few tries stay well under a dollar.
+white Carrara marble, warm gold accents, deep navy background. Model: gemini-2.5-flash-image
+("nano-banana"; the old `-preview` id is gone from OpenRouter), ~US$0.04 per image — a few tries
+stay well under a dollar.
 
 Then drop it into the README:  ![Platão](assets/platao-bust.png)
 """
@@ -22,7 +23,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-MODEL = "google/gemini-2.5-flash-image-preview"
+MODEL = "google/gemini-2.5-flash-image"
 ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 
