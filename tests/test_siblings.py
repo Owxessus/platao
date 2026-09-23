@@ -44,6 +44,14 @@ def test_capabilities_proven_delegates_when_socrates_present(tmp_path: Path, mon
     assert "capabilities_proven" in _ids(tmp_path)
 
 
+def test_capabilities_proven_ignores_an_unrelated_socrates(tmp_path: Path, monkeypatch):
+    # PyPI's `socrates` is an unrelated static-site generator: `import socrates` succeeds but there is
+    # no `prove_claims`. That is "sibling absent", not a crash of the whole sweep.
+    monkeypatch.setitem(sys.modules, "socrates", types.ModuleType("socrates"))
+    _pkg(tmp_path, {"pkg/__init__.py": "", "pkg/lib.py": "def widget():\n    return 1\n"})
+    assert "capabilities_proven" not in _ids(tmp_path)
+
+
 # ── ui_wired → Basanos (Node CLI, shelled out) ─────────────────────────────────────
 
 def test_ui_wired_is_silent_without_basanos(tmp_path: Path, monkeypatch):

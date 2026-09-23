@@ -59,10 +59,15 @@ def capabilities_proven(index: ProjectIndex) -> Iterable[Finding]:
         import socrates  # feature-detect the sibling; silent if not installed
     except ImportError:
         return
+    # Detect the *capability*, not the name: PyPI's `socrates` is an unrelated static-site generator,
+    # so a successful import alone doesn't mean the sibling is here (it crashed the sweep before).
+    prove_claims = getattr(socrates, "prove_claims", None)
+    if not callable(prove_claims):
+        return
     root = _scan_root(index)
     if root is None:
         return
-    for f in socrates.prove_claims(root):
+    for f in prove_claims(root):
         yield Finding(
             "capabilities_proven", "placebo", Severity.MEDIUM, f.path, f.lineno,
             f"public capability '{f.symbol}' is exposed but no test names it — a claim with no proof "
